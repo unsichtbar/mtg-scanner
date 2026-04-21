@@ -11,6 +11,7 @@ export default function InventoryPage() {
   const [loadingInventory, setLoadingInventory] = useState(true)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [adjustingId, setAdjustingId] = useState<string | null>(null)
+  const [setFilter, setSetFilter] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -74,6 +75,14 @@ export default function InventoryPage() {
 
   const inventoryCardIds = new Set(inventory.map((e) => e.card.id))
 
+  const sets = Array.from(
+    new Map(inventory.map((e) => [e.card.setCode, e.card.setName])).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]))
+
+  const visibleInventory = setFilter
+    ? inventory.filter((e) => e.card.setCode === setFilter)
+    : inventory
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold text-slate-800 mb-6">Inventory</h1>
@@ -130,9 +139,23 @@ export default function InventoryPage() {
 
       {/* Inventory list */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">
-          My collection{!loadingInventory && ` · ${inventory.length} card${inventory.length !== 1 ? 's' : ''}`}
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            My collection{!loadingInventory && ` · ${visibleInventory.length}${setFilter ? ` of ${inventory.length}` : ''} card${inventory.length !== 1 ? 's' : ''}`}
+          </h2>
+          {sets.length > 0 && (
+            <select
+              value={setFilter}
+              onChange={(e) => setSetFilter(e.target.value)}
+              className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer"
+            >
+              <option value="">All sets</option>
+              {sets.map(([code, name]) => (
+                <option key={code} value={code}>{name} ({code.toUpperCase()})</option>
+              ))}
+            </select>
+          )}
+        </div>
 
         {loadingInventory ? (
           <p className="text-slate-400 text-sm text-center py-8">Loading…</p>
@@ -140,7 +163,7 @@ export default function InventoryPage() {
           <p className="text-slate-400 text-sm text-center py-8">No cards yet. Search above to add some.</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {inventory.map((entry) => (
+            {visibleInventory.map((entry) => (
               <li key={entry.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
                 {entry.card.imageUri && (
                   <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />

@@ -6,6 +6,7 @@ export interface Card {
   typeLine: string
   oracleText: string | null
   rarity: string
+  setCode: string
   setName: string
   isBasicLand: boolean
   prices: Record<string, string | null> | null
