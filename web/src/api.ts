@@ -7,6 +7,7 @@ export interface Card {
   oracleText: string | null
   rarity: string
   setName: string
+  isBasicLand: boolean
   prices: Record<string, string | null> | null
 }
 
@@ -82,6 +83,11 @@ export const api = {
       request<DeckCard>(`/decks/${deckId}/cards`, {
         method: 'POST',
         body: JSON.stringify({ cardId, quantity: 1 }),
+      }),
+    setCardQuantity: (deckId: string, cardId: string, quantity: number) =>
+      request<DeckCard | null>(`/decks/${deckId}/cards/${cardId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ quantity }),
       }),
     removeCard: (deckId: string, cardId: string) =>
       request<void>(`/decks/${deckId}/cards/${cardId}`, { method: 'DELETE' }),

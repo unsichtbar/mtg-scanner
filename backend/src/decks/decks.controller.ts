@@ -1,6 +1,6 @@
 import {
   Body, Controller, Delete, Get, HttpCode,
-  Param, Post, Request, UseGuards,
+  Param, Patch, Post, Request, UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DecksService } from './decks.service';
@@ -39,6 +39,16 @@ export class DecksController {
     @Body() body: { cardId: string; quantity?: number },
   ) {
     return this.decks.addCard(req.user.id, deckId, body.cardId, body.quantity ?? 1);
+  }
+
+  @Patch(':id/cards/:cardId')
+  setCardQuantity(
+    @Request() req,
+    @Param('id') deckId: string,
+    @Param('cardId') cardId: string,
+    @Body() body: { quantity: number },
+  ) {
+    return this.decks.setCardQuantity(req.user.id, deckId, cardId, body.quantity);
   }
 
   @Delete(':id/cards/:cardId')

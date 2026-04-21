@@ -49,6 +49,28 @@ export class DecksService {
     return deckCard;
   }
 
+  async setCardQuantity(userId: string, deckId: string, cardId: string, quantity: number) {
+    const deck = await this.ensureOwner(userId, deckId);
+    const deckCard = await this.em.findOne(DeckCard, { deck, card: cardId }, { populate: ['card'] });
+    if (!deckCard) throw new NotFoundException('Card not in deck');
+
+    if (quantity <= 0) {
+      this.em.remove(deckCard);
+      await this.em.flush();
+      return null;
+    }
+
+    const isBasicLand = deckCard.card.isBasicLand;
+    const maxCopies = deck.format === GameFormat.Commander ? 1 : 4;
+    if (!isBasicLand && quantity > maxCopies) {
+      throw new Error(`${deck.format === GameFormat.Commander ? 'Commander' : 'Standard'} allows at most ${maxCopies} cop${maxCopies === 1 ? 'y' : 'ies'} of non-basic land cards`);
+    }
+
+    deckCard.quantity = quantity;
+    await this.em.flush();
+    return deckCard;
+  }
+
   async removeCard(userId: string, deckId: string, cardId: string) {
     const deck = await this.ensureOwner(userId, deckId);
     const deckCard = await this.em.findOne(DeckCard, { deck, card: cardId });

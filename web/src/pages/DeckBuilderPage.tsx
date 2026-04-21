@@ -9,6 +9,7 @@ export default function DeckBuilderPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [pendingCardId, setPendingCardId] = useState<string | null>(null)
+  const [adjustingCardId, setAdjustingCardId] = useState<string | null>(null)
   const [skipAllocationWarning, setSkipAllocationWarning] = useState(
     () => localStorage.getItem('skipAllocationWarning') === 'true'
   )
@@ -33,6 +34,7 @@ export default function DeckBuilderPage() {
 
   const deckCardIds = new Set(deck?.cards.map((dc) => dc.card.id) ?? [])
   const totalCards = deck?.cards.reduce((sum, dc) => sum + dc.quantity, 0) ?? 0
+  const inventoryQtyById = new Map(inventory.map((e) => [e.card.id, e.quantity]))
 
   const filtered = inventory.filter((entry) =>
     !search || entry.card.name.toLowerCase().includes(search.toLowerCase()),
@@ -42,10 +44,37 @@ export default function DeckBuilderPage() {
     if (!deck) return
     setPendingCardId(cardId)
     try {
-      await api.decks.addCard(deck.id, cardId)
-      await load()
+      const deckCard = await api.decks.addCard(deck.id, cardId)
+      setDeck((prev) => {
+        if (!prev) return prev
+        const existing = prev.cards.find((c) => c.card.id === cardId)
+        const cards = existing
+          ? prev.cards.map((c) => c.card.id === cardId ? { ...c, quantity: deckCard.quantity } : c)
+          : [...prev.cards, deckCard]
+        return { ...prev, cards }
+      })
     } finally {
       setPendingCardId(null)
+    }
+  }
+
+  async function adjustCardQuantity(cardId: string, delta: number) {
+    if (!deck) return
+    const dc = deck.cards.find((c) => c.card.id === cardId)
+    if (!dc) return
+    const newQty = dc.quantity + delta
+    setAdjustingCardId(cardId)
+    try {
+      const updated = await api.decks.setCardQuantity(deck.id, cardId, newQty)
+      setDeck((prev) => {
+        if (!prev) return prev
+        const cards = updated
+          ? prev.cards.map((c) => c.card.id === cardId ? { ...c, quantity: updated.quantity } : c)
+          : prev.cards.filter((c) => c.card.id !== cardId)
+        return { ...prev, cards }
+      })
+    } finally {
+      setAdjustingCardId(null)
     }
   }
 
@@ -54,7 +83,7 @@ export default function DeckBuilderPage() {
     setPendingCardId(cardId)
     try {
       await api.decks.removeCard(deck.id, cardId)
-      await load()
+      setDeck((prev) => prev ? { ...prev, cards: prev.cards.filter((c) => c.card.id !== cardId) } : prev)
     } finally {
       setPendingCardId(null)
     }
@@ -97,7 +126,10 @@ export default function DeckBuilderPage() {
         <section className="mb-8">
           <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">In this deck</h2>
           <ul className="flex flex-col gap-1.5">
-            {deck.cards.map((dc) => (
+            {deck.cards.map((dc) => {
+              const maxCopies = deck.format === 'commander' ? 1 : 4
+              const atMax = !dc.card.isBasicLand && dc.quantity >= maxCopies
+              return (
               <li key={dc.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
                 {dc.card.imageUri && (
                   <img src={dc.card.imageUri} alt={dc.card.name} className="w-8 rounded shrink-0" />
@@ -106,16 +138,49 @@ export default function DeckBuilderPage() {
                   <p className="text-sm font-medium text-slate-800 truncate">{dc.card.name}</p>
                   <p className="text-xs text-slate-400">{dc.card.typeLine}</p>
                 </div>
-                <span className="text-sm text-slate-500 shrink-0">×{dc.quantity}</span>
+                {(() => {
+                  const owned = inventoryQtyById.get(dc.card.id) ?? 0
+                  const missing = dc.quantity - owned
+                  return missing > 0 ? (
+                    <span className="text-xs text-red-500 shrink-0">{missing} missing</span>
+                  ) : null
+                })()}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => adjustCardQuantity(dc.card.id, -1)}
+                    disabled={adjustingCardId === dc.card.id}
+                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
+                  >−</button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={dc.card.isBasicLand ? undefined : maxCopies}
+                    defaultValue={dc.quantity}
+                    key={dc.quantity}
+                    disabled={adjustingCardId === dc.card.id}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!isNaN(val) && val !== dc.quantity) adjustCardQuantity(dc.card.id, val - dc.quantity)
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                    className="w-10 text-center text-sm text-slate-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => adjustCardQuantity(dc.card.id, +1)}
+                    disabled={adjustingCardId === dc.card.id || atMax}
+                    title={atMax ? `Max ${maxCopies} cop${maxCopies === 1 ? 'y' : 'ies'} allowed` : undefined}
+                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
+                  >+</button>
+                </div>
                 <button
                   onClick={() => removeCard(dc.card.id)}
-                  disabled={pendingCardId === dc.card.id}
+                  disabled={pendingCardId === dc.card.id || adjustingCardId === dc.card.id}
                   className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
                 >
                   ×
                 </button>
               </li>
-            ))}
+            )})}
           </ul>
         </section>
       )}
