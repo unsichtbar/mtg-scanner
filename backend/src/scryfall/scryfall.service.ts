@@ -43,6 +43,20 @@ export class ScryfallService {
     return this.upsertCard(data);
   }
 
+  async search(query: string): Promise<Card[]> {
+    const { data } = await firstValueFrom(
+      this.http.get<{ data: ScryfallCard[] }>('/cards/search', {
+        params: { q: query, order: 'name', unique: 'cards' },
+      }),
+    ).catch(() => ({ data: { data: [] } }));
+
+    const cards: Card[] = [];
+    for (const sc of data.data.slice(0, 20)) {
+      cards.push(await this.upsertCard(sc));
+    }
+    return cards;
+  }
+
   async findById(id: string): Promise<Card> {
     const cached = await this.em.findOne(Card, id);
     if (cached) return cached;

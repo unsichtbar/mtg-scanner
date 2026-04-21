@@ -11,7 +11,7 @@ export class User {
   @Property({ unique: true })
   email: string;
 
-  @Property()
+  @Property({ hidden: true })
   passwordHash: string;
 
   @Property()

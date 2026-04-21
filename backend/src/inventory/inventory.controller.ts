@@ -19,7 +19,7 @@ export class InventoryController {
     @Query('text') text?: string,
     @Query('type') type?: string,
     @Query('rarity') rarity?: string,
-  ) {
+  ): Promise<any[]> {
     return this.inventory.list(req.user.id, {
       name,
       colors: colors ? colors.split(',') : undefined,

@@ -4,6 +4,8 @@ import { ScryfallService } from '../scryfall/scryfall.service';
 import { InventoryEntry } from '../entities/inventory-entry.entity';
 import { User } from '../entities/user.entity';
 import { Card } from '../entities/card.entity';
+import { DeckCard } from '../entities/deck-card.entity';
+import { Deck } from '../entities/deck.entity';
 
 export interface InventoryFilter {
   name?: string;
@@ -21,7 +23,7 @@ export class InventoryService {
     private readonly scryfall: ScryfallService,
   ) {}
 
-  async list(userId: string, filter: InventoryFilter) {
+  async list(userId: string, filter: InventoryFilter): Promise<any[]> {
     const cardWhere: Record<string, any> = {};
     if (filter.name) cardWhere.name = { $ilike: `%${filter.name}%` };
     if (filter.colors?.length) cardWhere.colors = { $overlap: filter.colors };
@@ -30,13 +32,31 @@ export class InventoryService {
     if (filter.type) cardWhere.typeLine = { $ilike: `%${filter.type}%` };
     if (filter.rarity) cardWhere.rarity = filter.rarity;
 
-    return this.em.find(InventoryEntry, {
+    const entries = await this.em.find(InventoryEntry, {
       user: userId,
       ...(Object.keys(cardWhere).length ? { card: cardWhere } : {}),
     }, {
       populate: ['card'],
       orderBy: { card: { name: 'asc' } },
     });
+
+    // Attach deck membership for the current user
+    const userDecks = await this.em.find(Deck, { user: userId });
+    const deckCards = await this.em.find(DeckCard, {
+      deck: { $in: userDecks.map((d) => d.id) },
+    }, { populate: ['deck'] });
+
+    const cardDeckMap = new Map<string, { id: string; name: string }[]>();
+    for (const dc of deckCards) {
+      const cardId = (dc.card as any).id ?? dc.card;
+      if (!cardDeckMap.has(cardId)) cardDeckMap.set(cardId, []);
+      cardDeckMap.get(cardId)!.push({ id: dc.deck.id, name: dc.deck.name });
+    }
+
+    return entries.map((entry) => ({
+      ...entry,
+      inDecks: cardDeckMap.get(entry.card.id) ?? [],
+    }));
   }
 
   async add(userId: string, cardId: string, quantity: number) {

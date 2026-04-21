@@ -35,3 +35,5 @@ MikroORM with PostgreSQL. After changing entities, generate a migration:
 ```bash
 pnpm --filter @mtg-scanner/backend exec mikro-orm migration:create
 ```
+
+Always fully type methods; never use `any`.
