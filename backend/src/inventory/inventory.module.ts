@@ -7,5 +7,6 @@ import { ScryfallModule } from '../scryfall/scryfall.module';
   imports: [ScryfallModule],
   providers: [InventoryService],
   controllers: [InventoryController],
+  exports: [InventoryService],
 })
 export class InventoryModule {}

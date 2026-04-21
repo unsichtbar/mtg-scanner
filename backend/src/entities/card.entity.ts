@@ -49,6 +49,9 @@ export class Card {
   @Property({ type: 'json' })
   legalities: Record<string, string>;
 
+  @Property({ type: 'json', nullable: true })
+  prices: Record<string, string | null> | null = null; // TCGPlayer prices from Scryfall
+
   @Property()
   cachedAt: Date = new Date();
 

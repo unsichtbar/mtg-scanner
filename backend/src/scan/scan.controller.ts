@@ -13,8 +13,8 @@ export class ScanController {
 
   @Post()
   @UseInterceptors(FileInterceptor('image', { limits: { fileSize: 10 * 1024 * 1024 } }))
-  scanCard(@Request() _req, @UploadedFile() file: Express.Multer.File) {
+  scanCard(@Request() req, @UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No image provided');
-    return this.scan.scanImage(file.buffer);
+    return this.scan.scanImage(file.buffer, req.user.id);
   }
 }

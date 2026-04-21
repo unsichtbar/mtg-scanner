@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { createWorker } from 'tesseract.js';
 import { ScryfallService } from '../scryfall/scryfall.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class ScanService {
-  constructor(private readonly scryfall: ScryfallService) {}
+  constructor(
+    private readonly scryfall: ScryfallService,
+    private readonly inventory: InventoryService,
+  ) {}
 
-  async scanImage(imageBuffer: Buffer) {
+  async scanImage(imageBuffer: Buffer, userId: string) {
     const worker = await createWorker('eng');
     let text: string;
     try {
@@ -22,7 +26,9 @@ export class ScanService {
     }
 
     const card = await this.scryfall.findByName(cardName);
-    return { cardName, card };
+    const inventoryEntry = await this.inventory.add(userId, card.id, 1);
+
+    return { cardName, card, inventoryEntry };
   }
 
   // Card name is typically the first non-empty line of OCR output

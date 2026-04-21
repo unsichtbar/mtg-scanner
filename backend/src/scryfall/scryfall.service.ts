@@ -20,6 +20,7 @@ interface ScryfallCard {
   set: string;
   set_name: string;
   legalities: Record<string, string>;
+  prices: Record<string, string | null>;
 }
 
 @Injectable()
@@ -76,6 +77,7 @@ export class ScryfallService {
       card.setName = data.set_name;
       card.isBasicLand = isBasicLand;
       card.legalities = data.legalities;
+      card.prices = data.prices ?? null;
       card.cachedAt = new Date();
     } else {
       card = new Card(
@@ -88,6 +90,7 @@ export class ScryfallService {
       card.oracleText = data.oracle_text ?? null;
       card.colors = data.colors ?? [];
       card.isBasicLand = isBasicLand;
+      card.prices = data.prices ?? null;
     }
 
     this.em.persist(card);
