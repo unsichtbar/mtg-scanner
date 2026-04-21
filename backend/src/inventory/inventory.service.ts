@@ -46,11 +46,11 @@ export class InventoryService {
       deck: { $in: userDecks.map((d) => d.id) },
     }, { populate: ['deck'] });
 
-    const cardDeckMap = new Map<string, { id: string; name: string }[]>();
+    const cardDeckMap = new Map<string, { id: string; name: string; quantity: number }[]>();
     for (const dc of deckCards) {
       const cardId = (dc.card as any).id ?? dc.card;
       if (!cardDeckMap.has(cardId)) cardDeckMap.set(cardId, []);
-      cardDeckMap.get(cardId)!.push({ id: dc.deck.id, name: dc.deck.name });
+      cardDeckMap.get(cardId)!.push({ id: dc.deck.id, name: dc.deck.name, quantity: dc.quantity });
     }
 
     return entries.map((entry) => ({

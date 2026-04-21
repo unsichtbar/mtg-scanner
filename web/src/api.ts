@@ -14,7 +14,7 @@ export interface InventoryEntry {
   id: string
   quantity: number
   card: Card
-  inDecks: { id: string; name: string }[]
+  inDecks: { id: string; name: string; quantity: number }[]
 }
 
 export interface DeckCard {

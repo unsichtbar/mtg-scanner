@@ -9,6 +9,15 @@ export default function DeckBuilderPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [pendingCardId, setPendingCardId] = useState<string | null>(null)
+  const [skipAllocationWarning, setSkipAllocationWarning] = useState(
+    () => localStorage.getItem('skipAllocationWarning') === 'true'
+  )
+
+  function toggleSkipWarning() {
+    const next = !skipAllocationWarning
+    setSkipAllocationWarning(next)
+    localStorage.setItem('skipAllocationWarning', String(next))
+  }
 
   const load = useCallback(async () => {
     const [d, inv] = await Promise.all([
@@ -129,6 +138,12 @@ export default function DeckBuilderPage() {
           <ul className="flex flex-col gap-1.5">
             {filtered.map((entry) => {
               const inDeck = deckCardIds.has(entry.card.id)
+              // Copies allocated to OTHER decks
+              const copiesElsewhere = entry.inDecks
+                .filter((d) => d.id !== deck.id)
+                .reduce((sum, d) => sum + d.quantity, 0)
+              const allCopiesAllocated = !inDeck && copiesElsewhere >= entry.quantity
+              const showWarning = allCopiesAllocated && !skipAllocationWarning
               return (
                 <li key={entry.id} className={`flex items-center gap-3 border rounded-lg px-3 py-2 ${inDeck ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
                   {entry.card.imageUri && (
@@ -144,10 +159,18 @@ export default function DeckBuilderPage() {
                           to={`/decks/${d.id}`}
                           className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 transition-colors"
                         >
-                          {d.name}
+                          {d.name} ×{d.quantity}
                         </Link>
                       ))}
                     </div>
+                    {showWarning && (
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        All copies allocated to other decks ·{' '}
+                        <button onClick={toggleSkipWarning} className="underline hover:text-amber-800 cursor-pointer">
+                          Don't warn me again
+                        </button>
+                      </p>
+                    )}
                   </div>
                   <span className="text-xs text-slate-400 shrink-0">×{entry.quantity}</span>
                   <button

@@ -90,14 +90,14 @@ export class DecksService {
 
   async delete(userId: string, deckId: string) {
     const deck = await this.ensureOwner(userId, deckId);
+    await this.em.nativeDelete(DeckCard, { deck: deck.id });
     this.em.remove(deck);
     await this.em.flush();
   }
 
   private async ensureOwner(userId: string, deckId: string) {
-    const deck = await this.em.findOne(Deck, deckId);
+    const deck = await this.em.findOne(Deck, { id: deckId, user: userId });
     if (!deck) throw new NotFoundException('Deck not found');
-    if (deck.user.id !== userId) throw new ForbiddenException();
     return deck;
   }
 }
