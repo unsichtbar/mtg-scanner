@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel -r dev",
+    "dev:local": "docker compose up -d && pnpm --parallel --filter @mtg-scanner/backend --filter @mtg-scanner/web dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test"
   },

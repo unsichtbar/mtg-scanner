@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { User } from './entities/user.entity';
+import { Card } from './entities/card.entity';
+import { InventoryEntry } from './entities/inventory-entry.entity';
+import { Deck } from './entities/deck.entity';
+import { DeckCard } from './entities/deck-card.entity';
+import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { ScryfallModule } from './scryfall/scryfall.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -16,8 +22,6 @@ import { ScanModule } from './scan/scan.module';
       useFactory: (config: ConfigService) => ({
         driver: PostgreSqlDriver,
         clientUrl: config.getOrThrow<string>('DATABASE_URL'),
-        entities: ['dist/**/*.entity.js'],
-        entitiesTs: ['src/**/*.entity.ts'],
         migrations: {
           path: 'dist/migrations',
           pathTs: 'src/migrations',
@@ -26,6 +30,8 @@ import { ScanModule } from './scan/scan.module';
       }),
       inject: [ConfigService],
     }),
+    MikroOrmModule.forFeature([User, Card, InventoryEntry, Deck, DeckCard]),
+    DatabaseModule,
     AuthModule,
     ScryfallModule,
     InventoryModule,

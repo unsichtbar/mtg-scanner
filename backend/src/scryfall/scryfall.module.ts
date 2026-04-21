@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { ScryfallService } from './scryfall.service';
-import { Card } from '../entities/card.entity';
 
 @Module({
   imports: [
@@ -15,7 +13,6 @@ import { Card } from '../entities/card.entity';
       }),
       inject: [ConfigService],
     }),
-    MikroOrmModule.forFeature([Card]),
   ],
   providers: [ScryfallService],
   exports: [ScryfallService],

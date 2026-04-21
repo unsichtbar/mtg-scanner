@@ -1,7 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/core';
 import { EntityManager } from '@mikro-orm/core';
 import { firstValueFrom } from 'rxjs';
 import { Card } from '../entities/card.entity';
@@ -28,13 +26,11 @@ interface ScryfallCard {
 export class ScryfallService {
   constructor(
     private readonly http: HttpService,
-    @InjectRepository(Card)
-    private readonly cards: EntityRepository<Card>,
     private readonly em: EntityManager,
   ) {}
 
   async findByName(name: string): Promise<Card> {
-    const cached = await this.cards.findOne({ name: { $ilike: name } });
+    const cached = await this.em.findOne(Card, { name: { $ilike: name } });
     if (cached) return cached;
 
     const { data } = await firstValueFrom(
@@ -47,7 +43,7 @@ export class ScryfallService {
   }
 
   async findById(id: string): Promise<Card> {
-    const cached = await this.cards.findOne(id);
+    const cached = await this.em.findOne(Card, id);
     if (cached) return cached;
 
     const { data } = await firstValueFrom(
@@ -64,7 +60,7 @@ export class ScryfallService {
       data.image_uris?.normal ?? data.card_faces?.[0]?.image_uris?.normal ?? null;
     const isBasicLand = data.type_line?.toLowerCase().includes('basic land') ?? false;
 
-    let card = await this.cards.findOne(data.id);
+    let card = await this.em.findOne(Card, data.id);
     if (card) {
       card.name = data.name;
       card.scryfallUri = data.scryfall_uri;
@@ -94,7 +90,8 @@ export class ScryfallService {
       card.isBasicLand = isBasicLand;
     }
 
-    this.em.persist(card); await this.em.flush();
+    this.em.persist(card);
+    await this.em.flush();
     return card;
   }
 }

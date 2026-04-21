@@ -72,7 +72,10 @@ export default function CardScanner() {
         const res = await fetch('/api/scan', { method: 'POST', body: form })
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          throw new Error(body.message ?? `Server error ${res.status}`)
+          const msg = Array.isArray(body.message)
+            ? body.message.join(', ')
+            : body.message ?? `Server error ${res.status}`
+          throw new Error(msg)
         }
 
         const data: ScannedCard = await res.json()
@@ -106,7 +109,7 @@ export default function CardScanner() {
         />
         <canvas
           ref={canvasRef}
-          className={`w-full h-full object-cover ${state === 'loading' || state === 'result' ? 'block' : 'hidden'}`}
+          className={`w-full h-full object-cover ${state === 'loading' || state === 'result' || state === 'error' ? 'block' : 'hidden'}`}
         />
         {state === 'idle' && (
           <div className="flex flex-col items-center gap-2 text-slate-400">
@@ -118,6 +121,12 @@ export default function CardScanner() {
           <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-3">
             <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             <p className="text-white text-sm">Scanning…</p>
+          </div>
+        )}
+        {state === 'error' && error && (
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 px-6 text-center">
+            <span className="text-3xl">⚠️</span>
+            <p className="text-white font-medium text-sm">{error}</p>
           </div>
         )}
       </div>
@@ -157,13 +166,6 @@ export default function CardScanner() {
           </button>
         )}
       </div>
-
-      {/* Error */}
-      {state === 'error' && error && (
-        <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
-        </div>
-      )}
 
       {/* Result */}
       {state === 'result' && result && (
