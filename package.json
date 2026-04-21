@@ -1,0 +1,20 @@
+{
+  "name": "mtg-scanner",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/engines",
+      "bcrypt",
+      "prisma",
+      "tesseract.js"
+    ]
+  }
+}

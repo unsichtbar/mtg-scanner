@@ -1,0 +1,21 @@
+{
+  "name": "@mtg-scanner/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "build": "expo export",
+    "test": "echo \"TODO: add test script\""
+  },
+  "dependencies": {
+    "expo": "~53.0.0",
+    "react": "^19.0.0",
+    "react-native": "^0.79.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-native": "^0.73.0"
+  }
+}

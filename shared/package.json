@@ -1,0 +1,13 @@
+{
+  "name": "@mtg-scanner/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"TODO: add test script\""
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
