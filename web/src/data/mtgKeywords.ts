@@ -35,7 +35,6 @@ export const MTG_KEYWORDS: Record<string, string> = {
 
   // Activated & triggered
   'Defender': 'This creature can\'t attack.',
-  'Vigilance': 'This creature doesn\'t tap when attacking.',
   'Flash': 'You may cast this spell any time you could cast an instant.',
   'Flashback': 'You may cast this card from your graveyard for its flashback cost, then exile it.',
   'Cycling': 'Pay the cycling cost and discard this card to draw a card.',
@@ -101,7 +100,6 @@ export const MTG_KEYWORDS: Record<string, string> = {
   'Companion': 'If this card is your companion, you may put it into your hand from outside the game for 3 mana once per game.',
   'Mutate': 'If you cast this for its mutate cost, put it over or under a non-Human creature you own. They mutate into the merged creature.',
   'Coven': 'Bonus applies if you control three or more creatures with different powers.',
-  'Ward': 'Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays the ward cost.',
   'Decayed': 'This creature can\'t block. Sacrifice it at end of combat.',
   'Cleave': 'You may cast this spell for its cleave cost. If you do, remove the bracketed text.',
   'Training': 'Whenever this creature attacks with another creature with greater power, put a +1/+1 counter on this creature.',

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { api, Card, InventoryEntry } from '../api'
+import CardRow from '../components/CardRow'
 
 // --- Context ---
 
@@ -143,14 +144,7 @@ Inventory.Search = function Search() {
             const inInventory = inventoryCardIds.has(card.id)
             const justAdded = addedIds.has(card.id)
             return (
-              <li key={card.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                {card.imageUri && (
-                  <img src={card.imageUri} alt={card.name} className="w-8 rounded shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{card.name}</p>
-                  <p className="text-xs text-slate-400">{card.setName} · {card.typeLine}</p>
-                </div>
+              <CardRow key={card.id} card={card} subtitle={`${card.setName} · ${card.typeLine}`}>
                 {card.prices?.usd && (
                   <span className="text-xs text-slate-500 shrink-0">${card.prices.usd}</span>
                 )}
@@ -165,7 +159,7 @@ Inventory.Search = function Search() {
                 >
                   {pendingCardId === card.id ? '…' : inInventory ? '+1' : 'Add'}
                 </button>
-              </li>
+              </CardRow>
             )
           })}
         </ul>
@@ -205,14 +199,13 @@ Inventory.Collection = function Collection() {
       ) : (
         <ul className="flex flex-col gap-1.5">
           {visibleInventory.map((entry) => (
-            <li key={entry.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-              {entry.card.imageUri && (
-                <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
-              )}
-              <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-slate-300">
-                <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
-                <p className="text-xs text-slate-400">{entry.card.setName} · {entry.card.typeLine}</p>
-              </Link>
+            <CardRow
+              key={entry.id}
+              card={entry.card}
+              subtitle={`${entry.card.setName} · ${entry.card.typeLine}`}
+              nameLink="/cards"
+              nameLinkState={{ card: entry.card }}
+            >
               {entry.card.prices?.usd && (
                 <span className="text-xs text-slate-500 shrink-0">${entry.card.prices.usd}</span>
               )}
@@ -248,7 +241,7 @@ Inventory.Collection = function Collection() {
               >
                 ×
               </button>
-            </li>
+            </CardRow>
           ))}
         </ul>
       )}

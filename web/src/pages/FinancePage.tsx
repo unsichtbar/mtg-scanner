@@ -1,6 +1,6 @@
 import { useEffect, useState, createContext, useContext } from 'react'
-import { Link } from 'react-router-dom'
 import { api, InventoryEntry } from '../api'
+import CardRow from '../components/CardRow'
 
 // --- Helpers ---
 
@@ -121,25 +121,18 @@ Finance.TopCards = function TopCards() {
       <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Most valuable cards</h2>
       <ul className="flex flex-col gap-1.5">
         {topCards.map((entry) => (
-          <li key={entry.id}>
-            <Link
-              to="/cards"
-              state={{ card: entry.card }}
-              className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300 transition-colors"
-            >
-              {entry.card.imageUri && (
-                <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
-                <p className="text-xs text-slate-400">{entry.card.setName} · ×{entry.quantity}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-semibold text-slate-800">{fmt(cardValue(entry))}</p>
-                <p className="text-xs text-slate-400">{fmt(parseFloat(entry.card.prices!.usd!))} each</p>
-              </div>
-            </Link>
-          </li>
+          <CardRow
+            key={entry.id}
+            card={entry.card}
+            subtitle={`${entry.card.setName} · ×${entry.quantity}`}
+            to="/cards"
+            toState={{ card: entry.card }}
+          >
+            <div className="text-right shrink-0">
+              <p className="text-sm font-semibold text-slate-800">{fmt(cardValue(entry))}</p>
+              <p className="text-xs text-slate-400">{fmt(parseFloat(entry.card.prices!.usd!))} each</p>
+            </div>
+          </CardRow>
         ))}
       </ul>
     </section>
@@ -213,16 +206,9 @@ Finance.Unpriced = function Unpriced() {
       </h2>
       <ul className="flex flex-col gap-1.5">
         {unpriced.map((entry) => (
-          <li key={entry.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-            {entry.card.imageUri && (
-              <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
-              <p className="text-xs text-slate-400">{entry.card.setName}</p>
-            </div>
+          <CardRow key={entry.id} card={entry.card} subtitle={entry.card.setName}>
             <span className="text-xs text-slate-300 shrink-0">no price</span>
-          </li>
+          </CardRow>
         ))}
       </ul>
     </section>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, createContext, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, DeckDetail, InventoryEntry } from '../api'
+import CardRow from '../components/CardRow'
 
 // --- Context ---
 
@@ -170,14 +171,7 @@ DeckBuilder.DeckCards = function DeckCards() {
           const owned = inventoryQtyById.get(dc.card.id) ?? 0
           const missing = dc.quantity - owned
           return (
-            <li key={dc.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-              {dc.card.imageUri && (
-                <img src={dc.card.imageUri} alt={dc.card.name} className="w-8 rounded shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate">{dc.card.name}</p>
-                <p className="text-xs text-slate-400">{dc.card.typeLine}</p>
-              </div>
+            <CardRow key={dc.id} card={dc.card} subtitle={dc.card.typeLine}>
               {missing > 0 && (
                 <span className="text-xs text-red-500 shrink-0">{missing} missing</span>
               )}
@@ -215,7 +209,7 @@ DeckBuilder.DeckCards = function DeckCards() {
               >
                 ×
               </button>
-            </li>
+            </CardRow>
           )
         })}
       </ul>
@@ -252,33 +246,35 @@ DeckBuilder.InventorySearch = function InventorySearch() {
             const allCopiesAllocated = !inDeck && copiesElsewhere >= entry.quantity
             const showWarning = allCopiesAllocated && !skipAllocationWarning
             return (
-              <li key={entry.id} className={`flex items-center gap-3 border rounded-lg px-3 py-2 ${inDeck ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
-                {entry.card.imageUri && (
-                  <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <span className="text-xs text-slate-400">{entry.card.typeLine}</span>
-                    {entry.inDecks.map((d) => (
-                      <Link
-                        key={d.id}
-                        to={`/decks/${d.id}`}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 transition-colors"
-                      >
-                        {d.name} ×{d.quantity}
-                      </Link>
-                    ))}
-                  </div>
-                  {showWarning && (
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      All copies allocated to other decks ·{' '}
-                      <button onClick={toggleSkipWarning} className="underline hover:text-amber-800 cursor-pointer">
-                        Don't warn me again
-                      </button>
-                    </p>
-                  )}
-                </div>
+              <CardRow
+                key={entry.id}
+                card={entry.card}
+                highlight={inDeck}
+                subtitle={
+                  <>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-slate-400">{entry.card.typeLine}</span>
+                      {entry.inDecks.map((d) => (
+                        <Link
+                          key={d.id}
+                          to={`/decks/${d.id}`}
+                          className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 transition-colors"
+                        >
+                          {d.name} ×{d.quantity}
+                        </Link>
+                      ))}
+                    </div>
+                    {showWarning && (
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        All copies allocated to other decks ·{' '}
+                        <button onClick={toggleSkipWarning} className="underline hover:text-amber-800 cursor-pointer">
+                          Don't warn me again
+                        </button>
+                      </p>
+                    )}
+                  </>
+                }
+              >
                 <span className="text-xs text-slate-400 shrink-0">×{entry.quantity}</span>
                 <button
                   onClick={() => inDeck ? removeCard(entry.card.id) : addCard(entry.card.id)}
@@ -291,7 +287,7 @@ DeckBuilder.InventorySearch = function InventorySearch() {
                 >
                   {pendingCardId === entry.card.id ? '…' : inDeck ? 'In deck' : 'Add'}
                 </button>
-              </li>
+              </CardRow>
             )
           })}
         </ul>
