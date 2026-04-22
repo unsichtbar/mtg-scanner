@@ -132,7 +132,7 @@ Inventory.Search = function Search() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a card…"
-          className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+          className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm bg-surface-muted text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-focus"
         />
         {searching && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">Searching…</span>
@@ -183,7 +183,7 @@ Inventory.Collection = function Collection() {
           <select
             value={setFilter}
             onChange={(e) => setSetFilter(e.target.value)}
-            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft focus:outline-none focus:ring-1 focus:ring-focus cursor-pointer"
+            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted focus:outline-none focus:ring-1 focus:ring-focus cursor-pointer"
           >
             <option value="">All sets</option>
             {sets.map(([code, name]) => (
@@ -226,7 +226,7 @@ Inventory.Collection = function Collection() {
                     if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
                   }}
                   onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                  className="w-10 text-center text-sm text-fg-soft border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   onClick={() => adjustQuantity(entry, +1)}

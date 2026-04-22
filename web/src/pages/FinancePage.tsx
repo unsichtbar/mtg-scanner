@@ -98,15 +98,15 @@ Finance.Summary = function Summary() {
   if (loading) return <p className="text-fg-faint text-sm text-center py-24">Loading…</p>
   return (
     <div className="grid grid-cols-3 gap-3 mb-8">
-      <div className="bg-white border border-outline rounded-xl px-4 py-4">
+      <div className="bg-surface-muted border border-outline rounded-xl px-4 py-4">
         <p className="text-xs text-fg-faint uppercase tracking-wide mb-1">Total value</p>
         <p className="text-2xl font-bold text-fg">{fmt(totalValue)}</p>
       </div>
-      <div className="bg-white border border-outline rounded-xl px-4 py-4">
+      <div className="bg-surface-muted border border-outline rounded-xl px-4 py-4">
         <p className="text-xs text-fg-faint uppercase tracking-wide mb-1">Unique cards</p>
         <p className="text-2xl font-bold text-fg">{inventory.length}</p>
       </div>
-      <div className="bg-white border border-outline rounded-xl px-4 py-4">
+      <div className="bg-surface-muted border border-outline rounded-xl px-4 py-4">
         <p className="text-xs text-fg-faint uppercase tracking-wide mb-1">Total copies</p>
         <p className="text-2xl font-bold text-fg">{totalCards}</p>
       </div>
@@ -152,7 +152,7 @@ Finance.BySet = function BySet() {
             <Link
               to="/inventory"
               search={{ set: row.code }}
-              className="flex items-center gap-3 bg-white border border-outline rounded-lg px-3 py-2 hover:border-outline-strong transition-colors"
+              className="flex items-center gap-3 bg-surface-muted border border-outline rounded-lg px-3 py-2 hover:border-outline-strong transition-colors"
             >
               <span className="text-xs font-mono text-fg-faint uppercase w-10 shrink-0">{row.code}</span>
               <div className="flex-1 min-w-0">
@@ -176,7 +176,7 @@ Finance.ByRarity = function ByRarity() {
       <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Value by rarity</h2>
       <ul className="flex flex-col gap-1.5">
         {rarityRows.map(([rarity, value]) => (
-          <li key={rarity} className="flex items-center gap-3 bg-white border border-outline rounded-lg px-3 py-2">
+          <li key={rarity} className="flex items-center gap-3 bg-surface-muted border border-outline rounded-lg px-3 py-2">
             <span className={`text-sm font-medium capitalize w-24 shrink-0 ${rarityColor[rarity] ?? 'text-fg-faint'}`}>{rarity}</span>
             <div className="flex-1">
               <div className="h-1.5 bg-surface-muted rounded-full overflow-hidden">

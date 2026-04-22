@@ -84,13 +84,13 @@ DeckList.CreateForm = function CreateForm() {
   const { showForm, name, setName, format, setFormat, creating, handleCreate } = useDeckList()
   if (!showForm) return null
   return (
-    <form onSubmit={handleCreate} className="mb-6 bg-surface border border-outline rounded-xl p-4 flex flex-col gap-3">
+    <form onSubmit={handleCreate} className="mb-6 bg-surface-muted border border-outline rounded-xl p-4 flex flex-col gap-3">
       <input
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Deck name"
-        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm bg-surface-muted text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-focus"
       />
       <div className="flex gap-2">
         {(['standard', 'commander'] as const).map((f) => (
@@ -99,7 +99,7 @@ DeckList.CreateForm = function CreateForm() {
             type="button"
             onClick={() => setFormat(f)}
             className={`flex-1 py-1.5 text-sm font-medium rounded-lg border transition-colors cursor-pointer capitalize ${
-              format === f ? 'bg-accent text-white border-accent' : 'bg-white text-fg-soft border-outline-strong hover:bg-surface'
+              format === f ? 'bg-accent text-white border-accent' : 'bg-surface-muted text-fg-soft border-outline-strong hover:bg-surface-strong'
             }`}
           >
             {f}
@@ -124,7 +124,7 @@ DeckList.Items = function Items() {
   return (
     <ul className="flex flex-col gap-3">
       {decks.map((deck) => (
-        <li key={deck.id} className="flex items-center gap-3 bg-white border border-outline rounded-xl px-4 py-3 hover:border-outline-strong transition-colors">
+        <li key={deck.id} className="flex items-center gap-3 bg-surface-muted border border-outline rounded-xl px-4 py-3 hover:border-outline-strong transition-colors">
           <Link to="/decks/$id" params={{ id: deck.id }} className="flex-1 min-w-0">
             <p className="font-medium text-fg truncate">{deck.name}</p>
             <p className="text-xs text-fg-faint capitalize">{deck.format}</p>

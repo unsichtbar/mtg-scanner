@@ -194,7 +194,7 @@ DeckBuilder.DeckCards = function DeckCards() {
                     if (!isNaN(val) && val !== dc.quantity) adjustCardQuantity(dc.card.id, val - dc.quantity)
                   }}
                   onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                  className="w-10 text-center text-sm text-fg-soft border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   onClick={() => adjustCardQuantity(dc.card.id, +1)}
@@ -231,7 +231,7 @@ DeckBuilder.InventorySearch = function InventorySearch() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search cards…"
-        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-focus"
+        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm mb-3 bg-surface-muted text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-focus"
       />
       {filtered.length === 0 ? (
         <p className="text-fg-faint text-sm text-center py-8">

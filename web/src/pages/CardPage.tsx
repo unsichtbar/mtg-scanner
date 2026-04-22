@@ -84,13 +84,13 @@ CardLookup.Search = function Search() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search for a card…"
-        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm bg-surface-muted text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-focus"
       />
       {searching && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">Searching…</span>
       )}
       {results.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-white border border-outline rounded-lg shadow-lg overflow-hidden">
+        <ul className="absolute z-10 w-full mt-1 bg-surface-muted border border-outline rounded-lg shadow-lg overflow-hidden">
           {results.map((card) => (
             <li key={card.id}>
               <button
@@ -121,7 +121,7 @@ CardLookup.Detail = function Detail() {
   if (!selected) return null
   const entry = inventoryByCardId.get(selected.id)
   return (
-    <div className="bg-white border border-outline rounded-xl overflow-hidden">
+    <div className="bg-surface-muted border border-outline rounded-xl overflow-hidden">
       <div className="flex gap-4 p-4">
         {selected.imageUri && (
           <img src={selected.imageUri} alt={selected.name} className="w-32 rounded-lg shrink-0 self-start" />

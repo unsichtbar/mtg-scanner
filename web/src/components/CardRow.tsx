@@ -22,7 +22,7 @@ export default function CardRow({
   children,
 }: CardRowProps) {
   const rowCls = `flex items-center gap-3 border rounded-lg px-3 py-2 ${
-    highlight ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-outline'
+    highlight ? 'bg-emerald-950/40 border-emerald-800' : 'bg-surface-muted border-outline'
   }${to ? ' hover:border-outline-strong transition-colors' : ''}`
 
   const image = card.imageUri
