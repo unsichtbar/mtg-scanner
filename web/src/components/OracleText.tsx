@@ -4,6 +4,23 @@ import { MTG_KEYWORDS } from '../data/mtgKeywords'
 const keywords = Object.keys(MTG_KEYWORDS).sort((a, b) => b.length - a.length)
 const keywordRegex = new RegExp(`\\b(${keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi')
 
+const SYMBOL_MAP: Record<string, string> = {
+  T: 'Tap', Q: 'Untap', E: 'Energy',
+  W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
+  S: 'Snow', X: 'X', Y: 'Y', Z: 'Z',
+  P: 'Phyrexian',
+}
+
+function expandSymbols(line: string): string {
+  return line.replace(/\{([^}]+)\}/g, (_, inner: string) => {
+    // Generic/numeric mana: {0}–{9}, {10}, etc.
+    if (/^\d+$/.test(inner)) return inner
+    // Hybrid mana like {W/U}, {2/W}, phyrexian like {W/P}
+    if (inner.includes('/')) return `{${inner}}`
+    return SYMBOL_MAP[inner.toUpperCase()] ?? `{${inner}}`
+  })
+}
+
 interface Props {
   text: string
 }
@@ -15,7 +32,7 @@ export default function OracleText({ text }: Props) {
     <div className="flex flex-col gap-1">
       {lines.map((line, i) => (
         <p key={i} className="text-xs text-slate-600 leading-relaxed">
-          {tokenize(line)}
+          {tokenize(expandSymbols(line))}
         </p>
       ))}
     </div>
