@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import CardScanner from './components/CardScanner'
 import InventoryPage from './pages/InventoryPage'
 import FinancePage from './pages/FinancePage'
+import CardPage from './pages/CardPage'
 import DecksPage from './pages/DecksPage'
 import DeckBuilderPage from './pages/DeckBuilderPage'
 
@@ -18,6 +19,9 @@ function Nav() {
         </NavLink>
         <NavLink to="/inventory" className={({ isActive }) => isActive ? active : inactive}>
           Inventory
+        </NavLink>
+        <NavLink to="/cards" className={({ isActive }) => isActive ? active : inactive}>
+          Cards
         </NavLink>
         <NavLink to="/finance" className={({ isActive }) => isActive ? active : inactive}>
           Finance
@@ -38,6 +42,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<CardScanner />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/cards" element={<CardPage />} />
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/decks" element={<DecksPage />} />
           <Route path="/decks/:id" element={<DeckBuilderPage />} />

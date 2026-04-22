@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { api, Card, InventoryEntry } from '../api'
 
 export default function InventoryPage() {
@@ -168,10 +169,10 @@ export default function InventoryPage() {
                 {entry.card.imageUri && (
                   <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
                 )}
-                <div className="flex-1 min-w-0">
+                <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-slate-300">
                   <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
                   <p className="text-xs text-slate-400">{entry.card.setName} · {entry.card.typeLine}</p>
-                </div>
+                </Link>
                 {entry.card.prices?.usd && (
                   <span className="text-xs text-slate-500 shrink-0">${entry.card.prices.usd}</span>
                 )}
@@ -180,17 +181,25 @@ export default function InventoryPage() {
                     onClick={() => adjustQuantity(entry, -1)}
                     disabled={adjustingId === entry.id || removingId === entry.id}
                     className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
-                  >
-                    −
-                  </button>
-                  <span className="text-sm text-slate-600 w-6 text-center">{entry.quantity}</span>
+                  >−</button>
+                  <input
+                    type="number"
+                    min={1}
+                    defaultValue={entry.quantity}
+                    key={entry.quantity}
+                    disabled={adjustingId === entry.id || removingId === entry.id}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                    className="w-10 text-center text-sm text-slate-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
                   <button
                     onClick={() => adjustQuantity(entry, +1)}
                     disabled={adjustingId === entry.id || removingId === entry.id}
                     className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
-                  >
-                    +
-                  </button>
+                  >+</button>
                 </div>
                 <button
                   onClick={() => removeFromInventory(entry.id)}
