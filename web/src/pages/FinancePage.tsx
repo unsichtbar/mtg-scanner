@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api, InventoryEntry } from '../api'
 
 function cardValue(entry: InventoryEntry): number {
@@ -89,18 +90,24 @@ export default function FinancePage() {
           <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Most valuable cards</h2>
           <ul className="flex flex-col gap-1.5">
             {topCards.map((entry) => (
-              <li key={entry.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                {entry.card.imageUri && (
-                  <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
-                  <p className="text-xs text-slate-400">{entry.card.setName} · ×{entry.quantity}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-slate-800">{fmt(cardValue(entry))}</p>
-                  <p className="text-xs text-slate-400">{fmt(parseFloat(entry.card.prices!.usd!))} each</p>
-                </div>
+              <li key={entry.id}>
+                <Link
+                  to="/cards"
+                  state={{ card: entry.card }}
+                  className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300 transition-colors"
+                >
+                  {entry.card.imageUri && (
+                    <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{entry.card.name}</p>
+                    <p className="text-xs text-slate-400">{entry.card.setName} · ×{entry.quantity}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-slate-800">{fmt(cardValue(entry))}</p>
+                    <p className="text-xs text-slate-400">{fmt(parseFloat(entry.card.prices!.usd!))} each</p>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
@@ -113,13 +120,19 @@ export default function FinancePage() {
           <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Value by set</h2>
           <ul className="flex flex-col gap-1.5">
             {setRows.map((row) => (
-              <li key={row.code} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                <span className="text-xs font-mono text-slate-400 uppercase w-10 shrink-0">{row.code}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
-                  <p className="text-xs text-slate-400">{row.count} cop{row.count === 1 ? 'y' : 'ies'}</p>
-                </div>
-                <p className="text-sm font-semibold text-slate-800 shrink-0">{fmt(row.value)}</p>
+              <li key={row.code}>
+                <Link
+                  to="/inventory"
+                  state={{ setCode: row.code }}
+                  className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300 transition-colors"
+                >
+                  <span className="text-xs font-mono text-slate-400 uppercase w-10 shrink-0">{row.code}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
+                    <p className="text-xs text-slate-400">{row.count} cop{row.count === 1 ? 'y' : 'ies'}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800 shrink-0">{fmt(row.value)}</p>
+                </Link>
               </li>
             ))}
           </ul>

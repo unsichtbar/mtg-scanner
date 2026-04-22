@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api, Card, InventoryEntry } from '../api'
 
 export default function InventoryPage() {
@@ -12,7 +12,8 @@ export default function InventoryPage() {
   const [loadingInventory, setLoadingInventory] = useState(true)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [adjustingId, setAdjustingId] = useState<string | null>(null)
-  const [setFilter, setSetFilter] = useState('')
+  const { state } = useLocation()
+  const [setFilter, setSetFilter] = useState(() => (state as any)?.setCode ?? '')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {

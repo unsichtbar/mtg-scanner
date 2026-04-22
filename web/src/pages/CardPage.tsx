@@ -24,9 +24,11 @@ export default function CardPage() {
   }, [state])
 
   useEffect(() => {
-    setSelected(null)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!query.trim()) { setResults([]); return }
+    if (!query.trim()) { setSelected(null); setResults([]); return }
+    // Query was set from router state — card is already displayed, don't search
+    if (selected && selected.name === query) return
+    setSelected(null)
     debounceRef.current = setTimeout(async () => {
       setSearching(true)
       try {
