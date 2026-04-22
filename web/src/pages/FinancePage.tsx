@@ -1,6 +1,7 @@
 import { useEffect, useState, createContext, useContext } from 'react'
 import { api, InventoryEntry } from '../api'
 import CardRow from '../components/CardRow'
+import { Link } from '@tanstack/react-router'
 
 // --- Helpers ---
 
@@ -150,7 +151,7 @@ Finance.BySet = function BySet() {
           <li key={row.code}>
             <Link
               to="/inventory"
-              state={{ setCode: row.code }}
+              search={{ set: row.code }}
               className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300 transition-colors"
             >
               <span className="text-xs font-mono text-slate-400 uppercase w-10 shrink-0">{row.code}</span>

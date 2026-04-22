@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { api, Deck } from '../api'
 
 // --- Context ---
@@ -47,7 +47,7 @@ function DeckList({ children }: { children: React.ReactNode }) {
     setCreating(true)
     try {
       const deck = await api.decks.create(name.trim(), format)
-      navigate(`/decks/${deck.id}`)
+      navigate({ to: '/decks/$id', params: { id: deck.id } })
     } finally {
       setCreating(false)
     }
@@ -125,7 +125,7 @@ DeckList.Items = function Items() {
     <ul className="flex flex-col gap-3">
       {decks.map((deck) => (
         <li key={deck.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 hover:border-slate-300 transition-colors">
-          <Link to={`/decks/${deck.id}`} className="flex-1 min-w-0">
+          <Link to="/decks/$id" params={{ id: deck.id }} className="flex-1 min-w-0">
             <p className="font-medium text-slate-800 truncate">{deck.name}</p>
             <p className="text-xs text-slate-400 capitalize">{deck.format}</p>
           </Link>

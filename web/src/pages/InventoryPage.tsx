@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
-import { useLocation } from 'react-router-dom'
 import { api, Card, InventoryEntry } from '../api'
 import CardRow from '../components/CardRow'
+import { Route } from '../routes/inventory'
 
 // --- Context ---
 
@@ -45,8 +45,8 @@ function Inventory({ children }: { children: React.ReactNode }) {
   const [loadingInventory, setLoadingInventory] = useState(true)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [adjustingId, setAdjustingId] = useState<string | null>(null)
-  const { state } = useLocation()
-  const [setFilter, setSetFilter] = useState(() => (state as any)?.setCode ?? '')
+  const { set } = Route.useSearch()
+  const [setFilter, setSetFilter] = useState(() => set ?? '')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {

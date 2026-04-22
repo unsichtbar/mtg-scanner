@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { api, Card, InventoryEntry } from '../api'
 import OracleText from '../components/OracleText'
 
@@ -59,7 +59,7 @@ function CardLookup({ children }: { children: React.ReactNode }) {
   function select(card: Card) {
     setResults([])
     setQuery(card.name)
-    navigate('/cards', { state: { card } })
+    navigate({ to: '/cards', state: { card } })
   }
 
   const inventoryByCardId = new Map(inventory.map((e) => [e.card.id, e]))
@@ -164,7 +164,8 @@ CardLookup.Ownership = function Ownership({ entry }: { entry: InventoryEntry | u
             {entry.inDecks.map((d) => (
               <Link
                 key={d.id}
-                to={`/decks/${d.id}`}
+                to="/decks/$id"
+                params={{ id: d.id }}
                 className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg px-2.5 py-1 transition-colors"
               >
                 {d.name} <span className="text-slate-400">×{d.quantity}</span>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, createContext, useContext } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { Link } from '@tanstack/react-router'
+import { Route } from '../routes/decks.$id'
 import { api, DeckDetail, InventoryEntry } from '../api'
 import CardRow from '../components/CardRow'
 
@@ -35,7 +36,7 @@ function useDeckBuilder() {
 // --- Compound component ---
 
 function DeckBuilder({ children }: { children: React.ReactNode }) {
-  const { id } = useParams<{ id: string }>()
+  const { id } = Route.useParams()
   const [deck, setDeck] = useState<DeckDetail | null>(null)
   const [inventory, setInventory] = useState<InventoryEntry[]>([])
   const [search, setSearch] = useState('')
@@ -257,7 +258,8 @@ DeckBuilder.InventorySearch = function InventorySearch() {
                       {entry.inDecks.map((d) => (
                         <Link
                           key={d.id}
-                          to={`/decks/${d.id}`}
+                          to="/decks/$id"
+                          params={{ id: d.id }}
                           className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 transition-colors"
                         >
                           {d.name} ×{d.quantity}
