@@ -193,7 +193,7 @@ DeckBuilder.DeckCards = function DeckCards() {
                     const val = parseInt(e.target.value, 10)
                     if (!isNaN(val) && val !== dc.quantity) adjustCardQuantity(dc.card.id, val - dc.quantity)
                   }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                   className="w-10 text-center text-sm text-slate-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button

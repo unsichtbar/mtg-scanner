@@ -25,20 +25,25 @@ function useCardLookup() {
 
 // --- Compound component ---
 
+interface CardLocationState {
+  card?: Card
+}
+
 function CardLookup({ children }: { children: React.ReactNode }) {
   const { state } = useLocation()
+  const locationState = state as CardLocationState | null
   const navigate = useNavigate()
-  const [query, setQuery] = useState(() => (state as any)?.card?.name ?? '')
+  const [query, setQuery] = useState(() => locationState?.card?.name ?? '')
   const [results, setResults] = useState<Card[]>([])
   const [searching, setSearching] = useState(false)
-  const [selected, setSelected] = useState<Card | null>(() => (state as any)?.card ?? null)
+  const [selected, setSelected] = useState<Card | null>(() => locationState?.card ?? null)
   const [inventory, setInventory] = useState<InventoryEntry[]>([])
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => { api.inventory.list().then(setInventory) }, [])
 
   useEffect(() => {
-    const card = (state as any)?.card ?? null
+    const card = locationState?.card ?? null
     setSelected(card)
     setQuery(card?.name ?? '')
   }, [state])
