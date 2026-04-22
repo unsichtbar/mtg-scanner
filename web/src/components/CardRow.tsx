@@ -22,8 +22,8 @@ export default function CardRow({
   children,
 }: CardRowProps) {
   const rowCls = `flex items-center gap-3 border rounded-lg px-3 py-2 ${
-    highlight ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
-  }${to ? ' hover:border-slate-300 transition-colors' : ''}`
+    highlight ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-outline'
+  }${to ? ' hover:border-outline-strong transition-colors' : ''}`
 
   const image = card.imageUri
     ? <img src={card.imageUri} alt={card.name} className="w-8 rounded shrink-0" />
@@ -31,17 +31,17 @@ export default function CardRow({
 
   const subtitleEl = subtitle === undefined ? null
     : typeof subtitle === 'string'
-      ? <p className="text-xs text-slate-400">{subtitle}</p>
+      ? <p className="text-xs text-fg-faint">{subtitle}</p>
       : subtitle
 
   const identity = nameLink ? (
-    <Link to={nameLink} state={nameLinkState} className="flex-1 min-w-0 hover:underline decoration-slate-300">
-      <p className="text-sm font-medium text-slate-800 truncate">{card.name}</p>
+    <Link to={nameLink} state={nameLinkState} className="flex-1 min-w-0 hover:underline decoration-fg-ghost">
+      <p className="text-sm font-medium text-fg truncate">{card.name}</p>
       {subtitleEl}
     </Link>
   ) : (
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-slate-800 truncate">{card.name}</p>
+      <p className="text-sm font-medium text-fg truncate">{card.name}</p>
       {subtitleEl}
     </div>
   )

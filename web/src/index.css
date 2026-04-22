@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+@theme {
+  /* Primary interactive / accent */
+  --color-accent: #1e293b;        /* slate-800 */
+  --color-accent-hover: #334155;  /* slate-700 */
+
+  /* Foreground / text hierarchy */
+  --color-fg: #1e293b;            /* slate-800 — primary text */
+  --color-fg-mid: #334155;        /* slate-700 — ghost button hover text */
+  --color-fg-soft: #475569;       /* slate-600 — secondary text, button labels */
+  --color-fg-muted: #64748b;      /* slate-500 — subtitles, labels */
+  --color-fg-faint: #94a3b8;      /* slate-400 — placeholders, section headings */
+  --color-fg-ghost: #cbd5e1;      /* slate-300 — delete buttons, "no price" */
+
+  /* Background surfaces */
+  --color-surface: #f8fafc;       /* slate-50  — page bg, subtle panels */
+  --color-surface-muted: #f1f5f9; /* slate-100 — chip/button bg */
+  --color-surface-strong: #e2e8f0;/* slate-200 — progress track, secondary hover */
+  --color-surface-dark: #0f172a;  /* slate-900 — camera viewfinder */
+
+  /* Borders / outlines */
+  --color-outline: #e2e8f0;       /* slate-200 — default card/panel borders */
+  --color-outline-strong: #cbd5e1;/* slate-300 — input borders */
+  --color-outline-subtle: #f1f5f9;/* slate-100 — internal dividers */
+
+  /* Focus ring */
+  --color-focus: #94a3b8;         /* slate-400 */
+}

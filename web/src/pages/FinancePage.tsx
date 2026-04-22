@@ -82,8 +82,8 @@ function Finance({ children }: { children: React.ReactNode }) {
   const rarityColor: Record<string, string> = {
     mythic: 'text-orange-500',
     rare: 'text-yellow-500',
-    uncommon: 'text-slate-400',
-    common: 'text-slate-300',
+    uncommon: 'text-fg-faint',
+    common: 'text-fg-ghost',
   }
 
   return (
@@ -95,20 +95,20 @@ function Finance({ children }: { children: React.ReactNode }) {
 
 Finance.Summary = function Summary() {
   const { loading, totalValue, inventory, totalCards } = useFinance()
-  if (loading) return <p className="text-slate-400 text-sm text-center py-24">Loading…</p>
+  if (loading) return <p className="text-fg-faint text-sm text-center py-24">Loading…</p>
   return (
     <div className="grid grid-cols-3 gap-3 mb-8">
-      <div className="bg-white border border-slate-200 rounded-xl px-4 py-4">
-        <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Total value</p>
-        <p className="text-2xl font-bold text-slate-800">{fmt(totalValue)}</p>
+      <div className="bg-white border border-outline rounded-xl px-4 py-4">
+        <p className="text-xs text-fg-faint uppercase tracking-wide mb-1">Total value</p>
+        <p className="text-2xl font-bold text-fg">{fmt(totalValue)}</p>
       </div>
-      <div className="bg-white border border-slate-200 rounded-xl px-4 py-4">
-        <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Unique cards</p>
-        <p className="text-2xl font-bold text-slate-800">{inventory.length}</p>
+      <div className="bg-white border border-outline rounded-xl px-4 py-4">
+        <p className="text-xs text-fg-faint uppercase tracking-wide mb-1">Unique cards</p>
+        <p className="text-2xl font-bold text-fg">{inventory.length}</p>
       </div>
-      <div className="bg-white border border-slate-200 rounded-xl px-4 py-4">
-        <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Total copies</p>
-        <p className="text-2xl font-bold text-slate-800">{totalCards}</p>
+      <div className="bg-white border border-outline rounded-xl px-4 py-4">
+        <p className="text-xs text-fg-faint uppercase tracking-wide mb-1">Total copies</p>
+        <p className="text-2xl font-bold text-fg">{totalCards}</p>
       </div>
     </div>
   )
@@ -119,7 +119,7 @@ Finance.TopCards = function TopCards() {
   if (topCards.length === 0) return null
   return (
     <section className="mb-8">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Most valuable cards</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Most valuable cards</h2>
       <ul className="flex flex-col gap-1.5">
         {topCards.map((entry) => (
           <CardRow
@@ -130,8 +130,8 @@ Finance.TopCards = function TopCards() {
             toState={{ card: entry.card }}
           >
             <div className="text-right shrink-0">
-              <p className="text-sm font-semibold text-slate-800">{fmt(cardValue(entry))}</p>
-              <p className="text-xs text-slate-400">{fmt(parseFloat(entry.card.prices!.usd!))} each</p>
+              <p className="text-sm font-semibold text-fg">{fmt(cardValue(entry))}</p>
+              <p className="text-xs text-fg-faint">{fmt(parseFloat(entry.card.prices!.usd!))} each</p>
             </div>
           </CardRow>
         ))}
@@ -145,21 +145,21 @@ Finance.BySet = function BySet() {
   if (setRows.length === 0) return null
   return (
     <section className="mb-8">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Value by set</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Value by set</h2>
       <ul className="flex flex-col gap-1.5">
         {setRows.map((row) => (
           <li key={row.code}>
             <Link
               to="/inventory"
               search={{ set: row.code }}
-              className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300 transition-colors"
+              className="flex items-center gap-3 bg-white border border-outline rounded-lg px-3 py-2 hover:border-outline-strong transition-colors"
             >
-              <span className="text-xs font-mono text-slate-400 uppercase w-10 shrink-0">{row.code}</span>
+              <span className="text-xs font-mono text-fg-faint uppercase w-10 shrink-0">{row.code}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
-                <p className="text-xs text-slate-400">{row.count} cop{row.count === 1 ? 'y' : 'ies'}</p>
+                <p className="text-sm font-medium text-fg truncate">{row.name}</p>
+                <p className="text-xs text-fg-faint">{row.count} cop{row.count === 1 ? 'y' : 'ies'}</p>
               </div>
-              <p className="text-sm font-semibold text-slate-800 shrink-0">{fmt(row.value)}</p>
+              <p className="text-sm font-semibold text-fg shrink-0">{fmt(row.value)}</p>
             </Link>
           </li>
         ))}
@@ -173,20 +173,20 @@ Finance.ByRarity = function ByRarity() {
   if (rarityRows.length === 0) return null
   return (
     <section className="mb-8">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Value by rarity</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Value by rarity</h2>
       <ul className="flex flex-col gap-1.5">
         {rarityRows.map(([rarity, value]) => (
-          <li key={rarity} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-            <span className={`text-sm font-medium capitalize w-24 shrink-0 ${rarityColor[rarity] ?? 'text-slate-400'}`}>{rarity}</span>
+          <li key={rarity} className="flex items-center gap-3 bg-white border border-outline rounded-lg px-3 py-2">
+            <span className={`text-sm font-medium capitalize w-24 shrink-0 ${rarityColor[rarity] ?? 'text-fg-faint'}`}>{rarity}</span>
             <div className="flex-1">
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-surface-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-slate-400 rounded-full"
+                  className="h-full bg-fg-faint rounded-full"
                   style={{ width: `${totalValue > 0 ? (value / totalValue) * 100 : 0}%` }}
                 />
               </div>
             </div>
-            <p className="text-sm font-semibold text-slate-800 shrink-0 w-20 text-right">{fmt(value)}</p>
+            <p className="text-sm font-semibold text-fg shrink-0 w-20 text-right">{fmt(value)}</p>
           </li>
         ))}
       </ul>
@@ -197,18 +197,18 @@ Finance.ByRarity = function ByRarity() {
 Finance.Unpriced = function Unpriced() {
   const { unpriced, inventory } = useFinance()
   if (inventory.length === 0) {
-    return <p className="text-slate-400 text-sm text-center py-12">No cards in inventory yet.</p>
+    return <p className="text-fg-faint text-sm text-center py-12">No cards in inventory yet.</p>
   }
   if (unpriced.length === 0) return null
   return (
     <section>
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">
         No price data · {unpriced.length} card{unpriced.length !== 1 ? 's' : ''}
       </h2>
       <ul className="flex flex-col gap-1.5">
         {unpriced.map((entry) => (
           <CardRow key={entry.id} card={entry.card} subtitle={entry.card.setName}>
-            <span className="text-xs text-slate-300 shrink-0">no price</span>
+            <span className="text-xs text-fg-ghost shrink-0">no price</span>
           </CardRow>
         ))}
       </ul>
@@ -221,7 +221,7 @@ Finance.Unpriced = function Unpriced() {
 export default function FinancePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold text-slate-800 mb-6">Finance</h1>
+      <h1 className="text-3xl font-bold text-fg mb-6">Finance</h1>
       <Finance>
         <Finance.Summary />
         <Finance.TopCards />

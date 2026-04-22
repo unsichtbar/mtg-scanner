@@ -69,10 +69,10 @@ DeckList.Header = function Header() {
   const { showForm, setShowForm } = useDeckList()
   return (
     <div className="flex items-center justify-between mb-6">
-      <h1 className="text-3xl font-bold text-slate-800">Decks</h1>
+      <h1 className="text-3xl font-bold text-fg">Decks</h1>
       <button
         onClick={() => setShowForm(!showForm)}
-        className="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors cursor-pointer"
+        className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
       >
         {showForm ? 'Cancel' : '+ New Deck'}
       </button>
@@ -84,13 +84,13 @@ DeckList.CreateForm = function CreateForm() {
   const { showForm, name, setName, format, setFormat, creating, handleCreate } = useDeckList()
   if (!showForm) return null
   return (
-    <form onSubmit={handleCreate} className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+    <form onSubmit={handleCreate} className="mb-6 bg-surface border border-outline rounded-xl p-4 flex flex-col gap-3">
       <input
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Deck name"
-        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-focus"
       />
       <div className="flex gap-2">
         {(['standard', 'commander'] as const).map((f) => (
@@ -99,7 +99,7 @@ DeckList.CreateForm = function CreateForm() {
             type="button"
             onClick={() => setFormat(f)}
             className={`flex-1 py-1.5 text-sm font-medium rounded-lg border transition-colors cursor-pointer capitalize ${
-              format === f ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+              format === f ? 'bg-accent text-white border-accent' : 'bg-white text-fg-soft border-outline-strong hover:bg-surface'
             }`}
           >
             {f}
@@ -109,7 +109,7 @@ DeckList.CreateForm = function CreateForm() {
       <button
         type="submit"
         disabled={creating || !name.trim()}
-        className="py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors cursor-pointer"
+        className="py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50 transition-colors cursor-pointer"
       >
         {creating ? 'Creating…' : 'Create Deck'}
       </button>
@@ -119,19 +119,19 @@ DeckList.CreateForm = function CreateForm() {
 
 DeckList.Items = function Items() {
   const { decks, loading, handleDelete } = useDeckList()
-  if (loading) return <p className="text-slate-400 text-sm text-center py-12">Loading…</p>
-  if (decks.length === 0) return <p className="text-slate-400 text-sm text-center py-12">No decks yet.</p>
+  if (loading) return <p className="text-fg-faint text-sm text-center py-12">Loading…</p>
+  if (decks.length === 0) return <p className="text-fg-faint text-sm text-center py-12">No decks yet.</p>
   return (
     <ul className="flex flex-col gap-3">
       {decks.map((deck) => (
-        <li key={deck.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 hover:border-slate-300 transition-colors">
+        <li key={deck.id} className="flex items-center gap-3 bg-white border border-outline rounded-xl px-4 py-3 hover:border-outline-strong transition-colors">
           <Link to="/decks/$id" params={{ id: deck.id }} className="flex-1 min-w-0">
-            <p className="font-medium text-slate-800 truncate">{deck.name}</p>
-            <p className="text-xs text-slate-400 capitalize">{deck.format}</p>
+            <p className="font-medium text-fg truncate">{deck.name}</p>
+            <p className="text-xs text-fg-faint capitalize">{deck.format}</p>
           </Link>
           <button
             onClick={() => handleDelete(deck.id)}
-            className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none cursor-pointer"
+            className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none cursor-pointer"
             title="Delete deck"
           >
             ×

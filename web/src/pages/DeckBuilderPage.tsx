@@ -138,19 +138,19 @@ DeckBuilder.Header = function Header() {
   const progress = Math.min((totalCards / formatLimit) * 100, 100)
   return (
     <div className="mb-6">
-      <Link to="/decks" className="text-sm text-slate-400 hover:text-slate-600 transition-colors">← Decks</Link>
+      <Link to="/decks" className="text-sm text-fg-faint hover:text-fg-soft transition-colors">← Decks</Link>
       <div className="flex items-baseline gap-3 mt-1">
-        <h1 className="text-3xl font-bold text-slate-800">{deck.name}</h1>
-        <span className="text-sm text-slate-400 capitalize">{deck.format}</span>
+        <h1 className="text-3xl font-bold text-fg">{deck.name}</h1>
+        <span className="text-sm text-fg-faint capitalize">{deck.format}</span>
       </div>
       <div className="mt-3">
-        <div className="flex justify-between text-xs text-slate-400 mb-1">
+        <div className="flex justify-between text-xs text-fg-faint mb-1">
           <span>{totalCards} cards</span>
           <span>{formatLimit} required</span>
         </div>
-        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-surface-strong rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${totalCards >= formatLimit ? 'bg-emerald-500' : 'bg-slate-400'}`}
+            className={`h-full rounded-full transition-all ${totalCards >= formatLimit ? 'bg-emerald-500' : 'bg-fg-faint'}`}
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -164,7 +164,7 @@ DeckBuilder.DeckCards = function DeckCards() {
   if (!deck || deck.cards.length === 0) return null
   return (
     <section className="mb-8">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">In this deck</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">In this deck</h2>
       <ul className="flex flex-col gap-1.5">
         {deck.cards.map((dc) => {
           const maxCopies = deck.format === 'commander' ? 1 : 4
@@ -180,7 +180,7 @@ DeckBuilder.DeckCards = function DeckCards() {
                 <button
                   onClick={() => adjustCardQuantity(dc.card.id, -1)}
                   disabled={adjustingCardId === dc.card.id}
-                  className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
+                  className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-muted hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
                 >−</button>
                 <input
                   type="number"
@@ -194,19 +194,19 @@ DeckBuilder.DeckCards = function DeckCards() {
                     if (!isNaN(val) && val !== dc.quantity) adjustCardQuantity(dc.card.id, val - dc.quantity)
                   }}
                   onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                  className="w-10 text-center text-sm text-slate-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-10 text-center text-sm text-fg-soft border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   onClick={() => adjustCardQuantity(dc.card.id, +1)}
                   disabled={adjustingCardId === dc.card.id || atMax}
                   title={atMax ? `Max ${maxCopies} cop${maxCopies === 1 ? 'y' : 'ies'} allowed` : undefined}
-                  className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
+                  className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-muted hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
                 >+</button>
               </div>
               <button
                 onClick={() => removeCard(dc.card.id)}
                 disabled={pendingCardId === dc.card.id || adjustingCardId === dc.card.id}
-                className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
+                className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
               >
                 ×
               </button>
@@ -226,15 +226,15 @@ DeckBuilder.InventorySearch = function InventorySearch() {
   } = useDeckBuilder()
   return (
     <section>
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Add from inventory</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Add from inventory</h2>
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search cards…"
-        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-slate-400"
+        className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-focus"
       />
       {filtered.length === 0 ? (
-        <p className="text-slate-400 text-sm text-center py-8">
+        <p className="text-fg-faint text-sm text-center py-8">
           {inventory.length === 0 ? 'Your inventory is empty.' : 'No cards match your search.'}
         </p>
       ) : (
@@ -254,13 +254,13 @@ DeckBuilder.InventorySearch = function InventorySearch() {
                 subtitle={
                   <>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="text-xs text-slate-400">{entry.card.typeLine}</span>
+                      <span className="text-xs text-fg-faint">{entry.card.typeLine}</span>
                       {entry.inDecks.map((d) => (
                         <Link
                           key={d.id}
                           to="/decks/$id"
                           params={{ id: d.id }}
-                          className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 transition-colors"
+                          className="text-xs bg-surface-muted hover:bg-surface-strong text-fg-muted rounded px-1.5 py-0.5 transition-colors"
                         >
                           {d.name} ×{d.quantity}
                         </Link>
@@ -277,14 +277,14 @@ DeckBuilder.InventorySearch = function InventorySearch() {
                   </>
                 }
               >
-                <span className="text-xs text-slate-400 shrink-0">×{entry.quantity}</span>
+                <span className="text-xs text-fg-faint shrink-0">×{entry.quantity}</span>
                 <button
                   onClick={() => inDeck ? removeCard(entry.card.id) : addCard(entry.card.id)}
                   disabled={pendingCardId === entry.card.id}
                   className={`text-sm px-2.5 py-1 rounded-lg font-medium transition-colors disabled:opacity-40 cursor-pointer shrink-0 ${
                     inDeck
                       ? 'bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-600'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-surface-muted text-fg-soft hover:bg-surface-strong'
                   }`}
                 >
                   {pendingCardId === entry.card.id ? '…' : inDeck ? 'In deck' : 'Add'}
@@ -300,8 +300,8 @@ DeckBuilder.InventorySearch = function InventorySearch() {
 
 DeckBuilder.Content = function Content() {
   const { loading, deck } = useDeckBuilder()
-  if (loading) return <p className="text-slate-400 text-sm text-center py-24">Loading…</p>
-  if (!deck) return <p className="text-slate-400 text-sm text-center py-24">Deck not found.</p>
+  if (loading) return <p className="text-fg-faint text-sm text-center py-24">Loading…</p>
+  if (!deck) return <p className="text-fg-faint text-sm text-center py-24">Deck not found.</p>
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <DeckBuilder.Header />

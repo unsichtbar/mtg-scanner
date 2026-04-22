@@ -31,7 +31,7 @@ export default function OracleText({ text }: Props) {
   return (
     <div className="flex flex-col gap-1">
       {lines.map((line, i) => (
-        <p key={i} className="text-xs text-slate-600 leading-relaxed">
+        <p key={i} className="text-xs text-fg-soft leading-relaxed">
           {tokenize(expandSymbols(line))}
         </p>
       ))}
@@ -53,15 +53,15 @@ function tokenize(line: string) {
     parts.push(
       tooltip ? (
         <span key={match.index} className="relative group/kw inline">
-          <span className="underline decoration-dotted decoration-slate-400 cursor-help">{keyword}</span>
+          <span className="underline decoration-dotted decoration-fg-faint cursor-help">{keyword}</span>
           <span className="
             pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20
-            w-56 rounded-lg bg-slate-800 text-white text-xs px-3 py-2 leading-snug shadow-lg
+            w-56 rounded-lg bg-accent text-white text-xs px-3 py-2 leading-snug shadow-lg
             opacity-0 group-hover/kw:opacity-100 transition-opacity
           ">
             <strong className="block mb-0.5">{canonical}</strong>
             {tooltip}
-            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-accent" />
           </span>
         </span>
       ) : keyword

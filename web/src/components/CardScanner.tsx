@@ -129,10 +129,10 @@ export default function CardScanner() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-10 font-sans">
-      <h1 className="text-3xl font-bold text-center mb-6 text-slate-800">Scan a Card</h1>
+      <h1 className="text-3xl font-bold text-center mb-6 text-fg">Scan a Card</h1>
 
       {/* Viewfinder */}
-      <div className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center">
+      <div className="relative w-full aspect-video bg-surface-dark rounded-xl overflow-hidden flex items-center justify-center">
         <video
           ref={videoRef}
           autoPlay
@@ -143,7 +143,7 @@ export default function CardScanner() {
         <canvas ref={canvasRef} className="hidden" />
 
         {state === 'idle' && (
-          <div className="flex flex-col items-center gap-2 text-slate-400">
+          <div className="flex flex-col items-center gap-2 text-fg-faint">
             <span className="text-5xl">📷</span>
             <p className="text-sm">Camera off</p>
           </div>
@@ -165,11 +165,11 @@ export default function CardScanner() {
             )}
             <div>
               <p className="text-white font-semibold text-lg">{result.card.name}</p>
-              <p className="text-slate-300 text-sm">{result.card.setName} · {result.card.rarity}</p>
+              <p className="text-fg-ghost text-sm">{result.card.setName} · {result.card.rarity}</p>
               {result.card.prices?.usd && (
                 <p className="text-emerald-400 text-sm mt-0.5">${result.card.prices.usd}</p>
               )}
-              <p className="text-slate-400 text-xs mt-2">
+              <p className="text-fg-faint text-xs mt-2">
                 Added · {result.inventoryEntry.quantity} in collection
               </p>
             </div>
@@ -182,7 +182,7 @@ export default function CardScanner() {
         {state === 'idle' && (
           <button
             onClick={startCamera}
-            className="px-5 py-2 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors cursor-pointer"
+            className="px-5 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover transition-colors cursor-pointer"
           >
             Start Scanning
           </button>
@@ -190,7 +190,7 @@ export default function CardScanner() {
         {state !== 'idle' && (
           <button
             onClick={stopCamera}
-            className="px-5 py-2 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-100 transition-colors cursor-pointer"
+            className="px-5 py-2 rounded-lg border border-outline-strong text-fg-soft font-medium hover:bg-surface-muted transition-colors cursor-pointer"
           >
             Stop
           </button>
@@ -200,21 +200,21 @@ export default function CardScanner() {
       {/* Session list */}
       {sessionCards.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-2">
+          <p className="text-xs text-fg-faint font-medium uppercase tracking-wide mb-2">
             This session · {sessionCards.length} card{sessionCards.length !== 1 ? 's' : ''}
           </p>
           <ul className="flex flex-col gap-2">
             {sessionCards.map((scanned, i) => (
-              <li key={i} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+              <li key={i} className="flex items-center gap-3 bg-surface border border-outline rounded-lg px-3 py-2">
                 {scanned.card.imageUri && (
                   <img src={scanned.card.imageUri} alt={scanned.card.name} className="w-10 rounded shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-slate-800 font-medium text-sm truncate">{scanned.card.name}</p>
-                  <p className="text-slate-500 text-xs">{scanned.card.setName} · {scanned.card.rarity}</p>
+                  <p className="text-fg font-medium text-sm truncate">{scanned.card.name}</p>
+                  <p className="text-fg-muted text-xs">{scanned.card.setName} · {scanned.card.rarity}</p>
                 </div>
                 {scanned.card.prices?.usd && (
-                  <p className="text-slate-600 text-sm shrink-0">${scanned.card.prices.usd}</p>
+                  <p className="text-fg-soft text-sm shrink-0">${scanned.card.prices.usd}</p>
                 )}
                 <p className="text-emerald-600 text-sm font-medium shrink-0">×{scanned.inventoryEntry.quantity}</p>
               </li>

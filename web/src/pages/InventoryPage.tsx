@@ -126,16 +126,16 @@ Inventory.Search = function Search() {
   const inventoryCardIds = new Set(inventory.map((e) => e.card.id))
   return (
     <section className="mb-8">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Add cards by name</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Add cards by name</h2>
       <div className="relative">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a card…"
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="w-full px-3 py-2 border border-outline-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-focus"
         />
         {searching && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">Searching…</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">Searching…</span>
         )}
       </div>
       {searchResults.length > 0 && (
@@ -146,7 +146,7 @@ Inventory.Search = function Search() {
             return (
               <CardRow key={card.id} card={card} subtitle={`${card.setName} · ${card.typeLine}`}>
                 {card.prices?.usd && (
-                  <span className="text-xs text-slate-500 shrink-0">${card.prices.usd}</span>
+                  <span className="text-xs text-fg-muted shrink-0">${card.prices.usd}</span>
                 )}
                 <button
                   onClick={() => addToInventory(card)}
@@ -154,7 +154,7 @@ Inventory.Search = function Search() {
                   className={`text-sm px-2.5 py-1 rounded-lg font-medium transition-colors disabled:opacity-40 cursor-pointer shrink-0 ${
                     justAdded || inInventory
                       ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-surface-muted text-fg-soft hover:bg-surface-strong'
                   }`}
                 >
                   {pendingCardId === card.id ? '…' : inInventory ? '+1' : 'Add'}
@@ -176,14 +176,14 @@ Inventory.Collection = function Collection() {
   return (
     <section>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint">
           My collection{!loadingInventory && ` · ${visibleInventory.length}${setFilter ? ` of ${inventory.length}` : ''} card${inventory.length !== 1 ? 's' : ''}`}
         </h2>
         {sets.length > 0 && (
           <select
             value={setFilter}
             onChange={(e) => setSetFilter(e.target.value)}
-            className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer"
+            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft focus:outline-none focus:ring-1 focus:ring-focus cursor-pointer"
           >
             <option value="">All sets</option>
             {sets.map(([code, name]) => (
@@ -193,9 +193,9 @@ Inventory.Collection = function Collection() {
         )}
       </div>
       {loadingInventory ? (
-        <p className="text-slate-400 text-sm text-center py-8">Loading…</p>
+        <p className="text-fg-faint text-sm text-center py-8">Loading…</p>
       ) : inventory.length === 0 ? (
-        <p className="text-slate-400 text-sm text-center py-8">No cards yet. Search above to add some.</p>
+        <p className="text-fg-faint text-sm text-center py-8">No cards yet. Search above to add some.</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {visibleInventory.map((entry) => (
@@ -207,13 +207,13 @@ Inventory.Collection = function Collection() {
               nameLinkState={{ card: entry.card }}
             >
               {entry.card.prices?.usd && (
-                <span className="text-xs text-slate-500 shrink-0">${entry.card.prices.usd}</span>
+                <span className="text-xs text-fg-muted shrink-0">${entry.card.prices.usd}</span>
               )}
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => adjustQuantity(entry, -1)}
                   disabled={adjustingId === entry.id || removingId === entry.id}
-                  className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
+                  className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-muted hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
                 >−</button>
                 <input
                   type="number"
@@ -226,18 +226,18 @@ Inventory.Collection = function Collection() {
                     if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
                   }}
                   onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                  className="w-10 text-center text-sm text-slate-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-10 text-center text-sm text-fg-soft border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   onClick={() => adjustQuantity(entry, +1)}
                   disabled={adjustingId === entry.id || removingId === entry.id}
-                  className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 cursor-pointer text-base leading-none"
+                  className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-muted hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
                 >+</button>
               </div>
               <button
                 onClick={() => removeFromInventory(entry.id)}
                 disabled={removingId === entry.id || adjustingId === entry.id}
-                className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
+                className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
               >
                 ×
               </button>
@@ -254,7 +254,7 @@ Inventory.Collection = function Collection() {
 export default function InventoryPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold text-slate-800 mb-6">Inventory</h1>
+      <h1 className="text-3xl font-bold text-fg mb-6">Inventory</h1>
       <Inventory>
         <Inventory.Search />
         <Inventory.Collection />
