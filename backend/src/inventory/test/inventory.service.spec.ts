@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { InventoryService } from './inventory.service';
-import { ScryfallService } from '../scryfall/scryfall.service';
-import { InventoryEntry } from '../entities/inventory-entry.entity';
-import { User } from '../entities/user.entity';
-import { Card } from '../entities/card.entity';
-import { Deck } from '../entities/deck.entity';
-import { DeckCard } from '../entities/deck-card.entity';
+import { InventoryService } from '../inventory.service';
+import { ScryfallService } from '../../scryfall/scryfall.service';
+import { InventoryEntry } from '../../entities/inventory-entry.entity';
+import { User } from '../../entities/user.entity';
+import { Card } from '../../entities/card.entity';
+import { Deck } from '../../entities/deck.entity';
+import { DeckCard } from '../../entities/deck-card.entity';
 
 const mockEm = {
   findOne: jest.fn(),

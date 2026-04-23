@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { ScanService } from './scan.service';
-import { ScryfallService } from '../scryfall/scryfall.service';
-import { InventoryService } from '../inventory/inventory.service';
-import { Card } from '../entities/card.entity';
-import { User } from '../entities/user.entity';
-import { InventoryEntry } from '../entities/inventory-entry.entity';
+import { ScanService } from '../scan.service';
+import { ScryfallService } from '../../scryfall/scryfall.service';
+import { InventoryService } from '../../inventory/inventory.service';
+import { Card } from '../../entities/card.entity';
+import { User } from '../../entities/user.entity';
+import { InventoryEntry } from '../../entities/inventory-entry.entity';
 
 jest.mock('tesseract.js', () => ({
   createWorker: jest.fn(),

@@ -3,8 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
-import { ScryfallService } from './scryfall.service';
-import { Card } from '../entities/card.entity';
+import { ScryfallService } from '../scryfall.service';
+import { Card } from '../../entities/card.entity';
 
 const mockEm = {
   findOne: jest.fn(),

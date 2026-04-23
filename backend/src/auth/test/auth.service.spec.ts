@@ -3,8 +3,8 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AuthService } from './auth.service';
-import { User } from '../entities/user.entity';
+import { AuthService } from '../auth.service';
+import { User } from '../../entities/user.entity';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
