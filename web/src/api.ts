@@ -72,6 +72,30 @@ export const api = {
       }),
     remove: (entryId: string) =>
       request<void>(`/inventory/${entryId}`, { method: 'DELETE' }),
+    exportCsv: async (): Promise<void> => {
+      const res = await fetch('/api/inventory/export', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'inventory.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    },
+    importCsv: async (file: File): Promise<{ imported: number; errors: string[] }> => {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/inventory/import', { method: 'POST', body })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        const msg = Array.isArray(json.message) ? json.message.join(', ') : json.message ?? `Error ${res.status}`
+        throw new Error(msg)
+      }
+      return res.json()
+    },
   },
   decks: {
     list: () => request<Deck[]>('/decks'),

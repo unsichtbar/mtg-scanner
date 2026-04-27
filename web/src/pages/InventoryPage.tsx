@@ -23,6 +23,7 @@ interface InventoryCtx {
   addToInventory: (card: Card) => Promise<void>
   adjustQuantity: (entry: InventoryEntry, delta: number) => Promise<void>
   removeFromInventory: (entryId: string) => Promise<void>
+  refreshInventory: () => Promise<void>
 }
 
 const InventoryContext = createContext<InventoryCtx | null>(null)
@@ -101,6 +102,10 @@ function Inventory({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function refreshInventory() {
+    setInventory(await api.inventory.list())
+  }
+
   const sets = Array.from(
     new Map(inventory.map((e) => [e.card.setCode, e.card.setName])).entries()
   ).sort((a, b) => a[1].localeCompare(b[1]))
@@ -114,7 +119,7 @@ function Inventory({ children }: { children: React.ReactNode }) {
       query, setQuery, searchResults, searching, pendingCardId, addedIds,
       inventory, loadingInventory, removingId, adjustingId,
       setFilter, setSetFilter, sets, visibleInventory,
-      addToInventory, adjustQuantity, removeFromInventory,
+      addToInventory, adjustQuantity, removeFromInventory, refreshInventory,
     }}>
       {children}
     </InventoryContext.Provider>
@@ -171,27 +176,69 @@ Inventory.Search = function Search() {
 Inventory.Collection = function Collection() {
   const {
     inventory, loadingInventory, visibleInventory, setFilter, setSetFilter, sets,
-    removingId, adjustingId, adjustQuantity, removeFromInventory,
+    removingId, adjustingId, adjustQuantity, removeFromInventory, refreshInventory,
   } = useInventory()
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ imported: number; errors: string[] } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImporting(true)
+    setImportResult(null)
+    try {
+      const result = await api.inventory.importCsv(file)
+      setImportResult(result)
+      if (result.imported > 0) await refreshInventory()
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <section>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint">
           My collection{!loadingInventory && ` · ${visibleInventory.length}${setFilter ? ` of ${inventory.length}` : ''} card${inventory.length !== 1 ? 's' : ''}`}
         </h2>
-        {sets.length > 0 && (
-          <select
-            value={setFilter}
-            onChange={(e) => setSetFilter(e.target.value)}
-            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted focus:outline-none focus:ring-1 focus:ring-focus cursor-pointer"
-          >
-            <option value="">All sets</option>
-            {sets.map(([code, name]) => (
-              <option key={code} value={code}>{name} ({code.toUpperCase()})</option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-2">
+          {sets.length > 0 && (
+            <select
+              value={setFilter}
+              onChange={(e) => setSetFilter(e.target.value)}
+              className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted focus:outline-none focus:ring-1 focus:ring-focus cursor-pointer"
+            >
+              <option value="">All sets</option>
+              {sets.map(([code, name]) => (
+                <option key={code} value={code}>{name} ({code.toUpperCase()})</option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => api.inventory.exportCsv()}
+            disabled={inventory.length === 0}
+            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
+          >Export CSV</button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
+          >{importing ? 'Importing…' : 'Import CSV'}</button>
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
+        </div>
       </div>
+      {importResult && (
+        <div className={`text-xs rounded-lg px-3 py-2 mb-3 ${importResult.errors.length > 0 ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800'}`}>
+          Imported {importResult.imported} card{importResult.imported !== 1 ? 's' : ''}.
+          {importResult.errors.length > 0 && (
+            <ul className="mt-1 list-disc list-inside">
+              {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
       {loadingInventory ? (
         <p className="text-fg-faint text-sm text-center py-8">Loading…</p>
       ) : inventory.length === 0 ? (

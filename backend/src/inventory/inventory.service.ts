@@ -3,7 +3,6 @@ import { EntityManager } from '@mikro-orm/core';
 import { ScryfallService } from '../scryfall/scryfall.service';
 import { InventoryEntry } from '../entities/inventory-entry.entity';
 import { User } from '../entities/user.entity';
-import { Card } from '../entities/card.entity';
 import { DeckCard } from '../entities/deck-card.entity';
 import { Deck } from '../entities/deck.entity';
 
@@ -91,5 +90,44 @@ export class InventoryService {
 
     this.em.remove(entry);
     await this.em.flush();
+  }
+
+  async exportCsv(userId: string): Promise<string> {
+    const entries = await this.em.find(InventoryEntry, { user: userId }, {
+      populate: ['card'],
+      orderBy: { card: { name: 'asc' } },
+    });
+    return entries.map((e) => `${e.card.name},${e.quantity}`).join('\n');
+  }
+
+  async importCsv(userId: string, csv: string): Promise<{ imported: number; errors: string[] }> {
+    const user = await this.em.findOneOrFail(User, userId);
+    const lines = csv.split('\n').map((l) => l.trim()).filter(Boolean);
+    let imported = 0;
+    const errors: string[] = [];
+
+    for (const line of lines) {
+      const lastComma = line.lastIndexOf(',');
+      if (lastComma === -1) { errors.push(`Invalid line: "${line}"`); continue; }
+      const name = line.slice(0, lastComma).trim();
+      const quantity = parseInt(line.slice(lastComma + 1).trim(), 10);
+      if (!name || isNaN(quantity) || quantity < 1) { errors.push(`Invalid line: "${line}"`); continue; }
+
+      try {
+        const card = await this.scryfall.findByName(name);
+        const existing = await this.em.findOne(InventoryEntry, { user, card });
+        if (existing) {
+          existing.quantity = quantity;
+        } else {
+          this.em.persist(new InventoryEntry(user, card, quantity));
+        }
+        await this.em.flush();
+        imported++;
+      } catch {
+        errors.push(`Card not found: "${name}"`);
+      }
+    }
+
+    return { imported, errors };
   }
 }

@@ -1,7 +1,10 @@
 import {
   Body, Controller, Delete, Get, HttpCode,
-  Param, Patch, Post, Query, Request, UseGuards,
+  Param, Patch, Post, Query, Request, Res, UseGuards, UseInterceptors, UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { type Response } from 'express';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { InventoryService } from './inventory.service';
 
@@ -44,5 +47,20 @@ export class InventoryController {
   @HttpCode(204)
   remove(@Request() req, @Param('id') id: string) {
     return this.inventory.remove(req.user.id, id);
+  }
+
+  @Get('export')
+  async exportCsv(@Request() req, @Res() res: Response) {
+    const csv = await this.inventory.exportCsv(req.user.id);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="inventory.csv"');
+    res.send(csv);
+  }
+
+  @Post('import')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  importCsv(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    const csv = file.buffer.toString('utf-8');
+    return this.inventory.importCsv(req.user.id, csv);
   }
 }
