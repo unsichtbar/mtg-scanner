@@ -333,9 +333,9 @@ Inventory.Collection = function Collection() {
                 <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-fg-ghost">
                   <p className="text-sm font-medium text-fg truncate">{entry.card.name}</p>
                   <p className="text-xs text-fg-faint">{entry.card.setName} · {entry.card.typeLine}</p>
-                  {(entry.inContainers.length > 0 || entry.inDecks.length > 0) && (
+                  {((entry.inContainers?.length ?? 0) > 0 || entry.inDecks.length > 0) && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
-                      {entry.inContainers.map((c) => (
+                      {(entry.inContainers ?? []).map((c) => (
                         <span key={c.id} className="text-xs bg-indigo-900/40 text-indigo-300 rounded px-1.5 py-0.5 leading-none">
                           {c.name}{c.quantity > 1 ? ` ×${c.quantity}` : ''}
                         </span>
