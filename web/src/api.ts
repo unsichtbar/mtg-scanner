@@ -17,6 +17,23 @@ export interface InventoryEntry {
   quantity: number
   card: Card
   inDecks: { id: string; name: string; quantity: number }[]
+  inContainers: { id: string; name: string; quantity: number }[]
+}
+
+export interface Container {
+  id: string
+  name: string
+  createdAt: string
+}
+
+export interface ContainerDetail extends Container {
+  cards: ContainerCard[]
+}
+
+export interface ContainerCard {
+  id: string
+  quantity: number
+  card: Card
 }
 
 export interface DeckCard {
@@ -54,6 +71,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   cards: {
     search: (q: string) => request<Card[]>(`/cards/search?q=${encodeURIComponent(q)}`),
+    printings: (name: string) => request<Card[]>(`/cards/printings?name=${encodeURIComponent(name)}`),
   },
   inventory: {
     list: (params?: Record<string, string>) => {
@@ -96,6 +114,52 @@ export const api = {
       }
       return res.json()
     },
+    exportVersionedCsv: async (): Promise<void> => {
+      const res = await fetch('/api/inventory/export/versioned', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'inventory-versioned.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    },
+    importVersionedCsv: async (file: File): Promise<{ imported: number; errors: string[] }> => {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/inventory/import/versioned', { method: 'POST', body })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        const msg = Array.isArray(json.message) ? json.message.join(', ') : json.message ?? `Error ${res.status}`
+        throw new Error(msg)
+      }
+      return res.json()
+    },
+  },
+  containers: {
+    list: () => request<Container[]>('/containers'),
+    get: (id: string) => request<ContainerDetail>(`/containers/${id}`),
+    create: (name: string) =>
+      request<Container>('/containers', { method: 'POST', body: JSON.stringify({ name }) }),
+    rename: (id: string, name: string) =>
+      request<Container>(`/containers/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+    delete: (id: string) =>
+      request<void>(`/containers/${id}`, { method: 'DELETE' }),
+    addCard: (containerId: string, cardId: string, quantity = 1) =>
+      request<ContainerCard>(`/containers/${containerId}/cards`, {
+        method: 'POST',
+        body: JSON.stringify({ cardId, quantity }),
+      }),
+    setCardQuantity: (containerId: string, cardId: string, quantity: number) =>
+      request<ContainerCard | null>(`/containers/${containerId}/cards/${cardId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ quantity }),
+      }),
+    removeCard: (containerId: string, cardId: string) =>
+      request<void>(`/containers/${containerId}/cards/${cardId}`, { method: 'DELETE' }),
   },
   decks: {
     list: () => request<Deck[]>('/decks'),

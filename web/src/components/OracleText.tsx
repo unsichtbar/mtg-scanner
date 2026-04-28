@@ -1,15 +1,9 @@
 import { MTG_KEYWORDS } from '../data/mtgKeywords'
+import { MANA_SYMBOL_NAMES } from '../data/manaSymbols'
 
 // Build a regex that matches any known keyword (longest first to avoid partial matches)
 const keywords = Object.keys(MTG_KEYWORDS).sort((a, b) => b.length - a.length)
 const keywordRegex = new RegExp(`\\b(${keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi')
-
-const SYMBOL_MAP: Record<string, string> = {
-  T: 'Tap', Q: 'Untap', E: 'Energy',
-  W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
-  S: 'Snow', X: 'X', Y: 'Y', Z: 'Z',
-  P: 'Phyrexian',
-}
 
 function expandSymbols(line: string): string {
   return line.replace(/\{([^}]+)\}/g, (_, inner: string) => {
@@ -17,7 +11,7 @@ function expandSymbols(line: string): string {
     if (/^\d+$/.test(inner)) return inner
     // Hybrid mana like {W/U}, {2/W}, phyrexian like {W/P}
     if (inner.includes('/')) return `{${inner}}`
-    return SYMBOL_MAP[inner.toUpperCase()] ?? `{${inner}}`
+    return MANA_SYMBOL_NAMES[inner.toUpperCase()] ?? `{${inner}}`
   })
 }
 

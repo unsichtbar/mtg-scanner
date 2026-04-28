@@ -63,4 +63,19 @@ export class InventoryController {
     const csv = file.buffer.toString('utf-8');
     return this.inventory.importCsv(req.user.id, csv);
   }
+
+  @Get('export/versioned')
+  async exportVersionedCsv(@Request() req, @Res() res: Response) {
+    const csv = await this.inventory.exportVersionedCsv(req.user.id);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="inventory-versioned.csv"');
+    res.send(csv);
+  }
+
+  @Post('import/versioned')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  importVersionedCsv(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    const csv = file.buffer.toString('utf-8');
+    return this.inventory.importVersionedCsv(req.user.id, csv);
+  }
 }

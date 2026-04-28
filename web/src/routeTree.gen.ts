@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as DecksRouteImport } from './routes/decks'
+import { Route as ContainersRouteImport } from './routes/containers'
 import { Route as CardsRouteImport } from './routes/cards'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DecksIdRouteImport } from './routes/decks.$id'
+import { Route as ContainersIdRouteImport } from './routes/containers.$id'
 
 const InventoryRoute = InventoryRouteImport.update({
   id: '/inventory',
@@ -29,6 +31,11 @@ const FinanceRoute = FinanceRouteImport.update({
 const DecksRoute = DecksRouteImport.update({
   id: '/decks',
   path: '/decks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContainersRoute = ContainersRouteImport.update({
+  id: '/containers',
+  path: '/containers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CardsRoute = CardsRouteImport.update({
@@ -46,30 +53,41 @@ const DecksIdRoute = DecksIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DecksRoute,
 } as any)
+const ContainersIdRoute = ContainersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ContainersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cards': typeof CardsRoute
+  '/containers': typeof ContainersRouteWithChildren
   '/decks': typeof DecksRouteWithChildren
   '/finance': typeof FinanceRoute
   '/inventory': typeof InventoryRoute
+  '/containers/$id': typeof ContainersIdRoute
   '/decks/$id': typeof DecksIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cards': typeof CardsRoute
+  '/containers': typeof ContainersRouteWithChildren
   '/decks': typeof DecksRouteWithChildren
   '/finance': typeof FinanceRoute
   '/inventory': typeof InventoryRoute
+  '/containers/$id': typeof ContainersIdRoute
   '/decks/$id': typeof DecksIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cards': typeof CardsRoute
+  '/containers': typeof ContainersRouteWithChildren
   '/decks': typeof DecksRouteWithChildren
   '/finance': typeof FinanceRoute
   '/inventory': typeof InventoryRoute
+  '/containers/$id': typeof ContainersIdRoute
   '/decks/$id': typeof DecksIdRoute
 }
 export interface FileRouteTypes {
@@ -77,25 +95,38 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/cards'
+    | '/containers'
     | '/decks'
     | '/finance'
     | '/inventory'
+    | '/containers/$id'
     | '/decks/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cards' | '/decks' | '/finance' | '/inventory' | '/decks/$id'
+  to:
+    | '/'
+    | '/cards'
+    | '/containers'
+    | '/decks'
+    | '/finance'
+    | '/inventory'
+    | '/containers/$id'
+    | '/decks/$id'
   id:
     | '__root__'
     | '/'
     | '/cards'
+    | '/containers'
     | '/decks'
     | '/finance'
     | '/inventory'
+    | '/containers/$id'
     | '/decks/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CardsRoute: typeof CardsRoute
+  ContainersRoute: typeof ContainersRouteWithChildren
   DecksRoute: typeof DecksRouteWithChildren
   FinanceRoute: typeof FinanceRoute
   InventoryRoute: typeof InventoryRoute
@@ -124,6 +155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/containers': {
+      id: '/containers'
+      path: '/containers'
+      fullPath: '/containers'
+      preLoaderRoute: typeof ContainersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cards': {
       id: '/cards'
       path: '/cards'
@@ -145,8 +183,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecksIdRouteImport
       parentRoute: typeof DecksRoute
     }
+    '/containers/$id': {
+      id: '/containers/$id'
+      path: '/$id'
+      fullPath: '/containers/$id'
+      preLoaderRoute: typeof ContainersIdRouteImport
+      parentRoute: typeof ContainersRoute
+    }
   }
 }
+
+interface ContainersRouteChildren {
+  ContainersIdRoute: typeof ContainersIdRoute
+}
+
+const ContainersRouteChildren: ContainersRouteChildren = {
+  ContainersIdRoute: ContainersIdRoute,
+}
+
+const ContainersRouteWithChildren = ContainersRoute._addFileChildren(
+  ContainersRouteChildren,
+)
 
 interface DecksRouteChildren {
   DecksIdRoute: typeof DecksIdRoute
@@ -161,6 +218,7 @@ const DecksRouteWithChildren = DecksRoute._addFileChildren(DecksRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CardsRoute: CardsRoute,
+  ContainersRoute: ContainersRouteWithChildren,
   DecksRoute: DecksRouteWithChildren,
   FinanceRoute: FinanceRoute,
   InventoryRoute: InventoryRoute,

@@ -25,6 +25,11 @@ interface ScryfallCard {
 
 @Injectable()
 export class ScryfallService {
+  // Tracks card names whose full printings have been fetched from Scryfall this
+  // server session. On repeat requests we serve from DB instead of re-hitting
+  // the API. Cards are always persisted via upsertCard on first fetch.
+  private readonly fetchedPrintingNames = new Set<string>();
+
   constructor(
     private readonly http: HttpService,
     private readonly em: EntityManager,
@@ -41,6 +46,26 @@ export class ScryfallService {
     });
 
     return this.upsertCard(data);
+  }
+
+  async findPrintings(name: string): Promise<Card[]> {
+    if (this.fetchedPrintingNames.has(name)) {
+      return this.em.find(Card, { name }, { orderBy: { setName: 'asc' } });
+    }
+
+    const { data } = await firstValueFrom(
+      this.http.get<{ data: ScryfallCard[] }>('/cards/search', {
+        params: { q: `!"${name}"`, unique: 'prints', order: 'released', dir: 'desc' },
+      }),
+    ).catch(() => ({ data: { data: [] } }));
+
+    const cards: Card[] = [];
+    for (const sc of data.data.slice(0, 30)) {
+      cards.push(await this.upsertCard(sc));
+    }
+
+    if (cards.length > 0) this.fetchedPrintingNames.add(name);
+    return cards;
   }
 
   async search(query: string): Promise<Card[]> {

@@ -12,4 +12,10 @@ export class CardsController {
     if (!q?.trim()) return [];
     return this.scryfall.search(q.trim());
   }
+
+  @Get('printings')
+  printings(@Query('name') name: string) {
+    if (!name?.trim()) return [];
+    return this.scryfall.findPrintings(name.trim());
+  }
 }

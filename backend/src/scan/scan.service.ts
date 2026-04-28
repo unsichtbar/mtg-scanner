@@ -2,15 +2,17 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { createWorker } from 'tesseract.js';
 import { ScryfallService } from '../scryfall/scryfall.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { ContainersService } from '../containers/containers.service';
 
 @Injectable()
 export class ScanService {
   constructor(
     private readonly scryfall: ScryfallService,
     private readonly inventory: InventoryService,
+    private readonly containers: ContainersService,
   ) {}
 
-  async scanImage(imageBuffer: Buffer, userId: string) {
+  async scanImage(imageBuffer: Buffer, userId: string, containerId?: string) {
     const worker = await createWorker('eng');
     let text: string;
     try {
@@ -27,6 +29,10 @@ export class ScanService {
 
     const card = await this.scryfall.findByName(cardName);
     const inventoryEntry = await this.inventory.add(userId, card.id, 1);
+
+    if (containerId) {
+      await this.containers.addCard(userId, containerId, card.id, 1).catch(() => {});
+    }
 
     return { cardName, card, inventoryEntry };
   }

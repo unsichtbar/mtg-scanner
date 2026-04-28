@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
+import { Link } from '@tanstack/react-router'
 import { api, Card, InventoryEntry } from '../api'
 import CardRow from '../components/CardRow'
 import { Route } from '../routes/inventory'
@@ -24,6 +25,7 @@ interface InventoryCtx {
   adjustQuantity: (entry: InventoryEntry, delta: number) => Promise<void>
   removeFromInventory: (entryId: string) => Promise<void>
   refreshInventory: () => Promise<void>
+  switchVersion: (entry: InventoryEntry, newCardId: string) => Promise<void>
 }
 
 const InventoryContext = createContext<InventoryCtx | null>(null)
@@ -106,6 +108,16 @@ function Inventory({ children }: { children: React.ReactNode }) {
     setInventory(await api.inventory.list())
   }
 
+  async function switchVersion(entry: InventoryEntry, newCardId: string) {
+    await api.inventory.add(newCardId, 1)
+    if (entry.quantity <= 1) {
+      await api.inventory.remove(entry.id)
+    } else {
+      await api.inventory.update(entry.id, entry.quantity - 1)
+    }
+    await refreshInventory()
+  }
+
   const sets = Array.from(
     new Map(inventory.map((e) => [e.card.setCode, e.card.setName])).entries()
   ).sort((a, b) => a[1].localeCompare(b[1]))
@@ -119,7 +131,7 @@ function Inventory({ children }: { children: React.ReactNode }) {
       query, setQuery, searchResults, searching, pendingCardId, addedIds,
       inventory, loadingInventory, removingId, adjustingId,
       setFilter, setSetFilter, sets, visibleInventory,
-      addToInventory, adjustQuantity, removeFromInventory, refreshInventory,
+      addToInventory, adjustQuantity, removeFromInventory, refreshInventory, switchVersion,
     }}>
       {children}
     </InventoryContext.Provider>
@@ -176,20 +188,71 @@ Inventory.Search = function Search() {
 Inventory.Collection = function Collection() {
   const {
     inventory, loadingInventory, visibleInventory, setFilter, setSetFilter, sets,
-    removingId, adjustingId, adjustQuantity, removeFromInventory, refreshInventory,
+    removingId, adjustingId, adjustQuantity, removeFromInventory, refreshInventory, switchVersion,
   } = useInventory()
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const versionedFileInputRef = useRef<HTMLInputElement>(null)
 
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+  // Hover / printings popover
+  const [hoveredEntryId, setHoveredEntryId] = useState<string | null>(null)
+  const [printings, setPrintings] = useState<Card[]>([])
+  const [loadingPrintings, setLoadingPrintings] = useState(false)
+  const [switchingCardId, setSwitchingCardId] = useState<string | null>(null)
+  const printingsCacheRef = useRef<Map<string, Card[]>>(new Map())
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentHoveredRef = useRef<string | null>(null)
+
+  function onRowEnter(entry: InventoryEntry) {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    currentHoveredRef.current = entry.id
+    setHoveredEntryId(entry.id)
+    if (printingsCacheRef.current.has(entry.card.name)) {
+      const all = printingsCacheRef.current.get(entry.card.name)!
+      setPrintings(all.filter((p) => p.id !== entry.card.id))
+      setLoadingPrintings(false)
+    } else {
+      setPrintings([])
+      setLoadingPrintings(true)
+      const { id: cardId, name: cardName } = entry.card
+      const entryId = entry.id
+      api.cards.printings(cardName).then((all) => {
+        printingsCacheRef.current.set(cardName, all)
+        if (currentHoveredRef.current === entryId) {
+          setPrintings(all.filter((p) => p.id !== cardId))
+          setLoadingPrintings(false)
+        }
+      })
+    }
+  }
+
+  function onRowLeave() {
+    hideTimerRef.current = setTimeout(() => setHoveredEntryId(null), 150)
+  }
+
+  function onPopoverEnter() {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+  }
+
+  async function handleSwap(entry: InventoryEntry, printing: Card) {
+    setSwitchingCardId(printing.id)
+    try {
+      await switchVersion(entry, printing.id)
+      setHoveredEntryId(null)
+    } finally {
+      setSwitchingCardId(null)
+    }
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>, versioned: boolean) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
     setImporting(true)
     setImportResult(null)
     try {
-      const result = await api.inventory.importCsv(file)
+      const result = await (versioned ? api.inventory.importVersionedCsv(file) : api.inventory.importCsv(file))
       setImportResult(result)
       if (result.imported > 0) await refreshInventory()
     } finally {
@@ -220,13 +283,24 @@ Inventory.Collection = function Collection() {
             onClick={() => api.inventory.exportCsv()}
             disabled={inventory.length === 0}
             className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
-          >Export CSV</button>
+          >Export (by name)</button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
             className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
-          >{importing ? 'Importing…' : 'Import CSV'}</button>
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
+          >{importing ? 'Importing…' : 'Import (by name)'}</button>
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => handleImport(e, false)} />
+          <button
+            onClick={() => api.inventory.exportVersionedCsv()}
+            disabled={inventory.length === 0}
+            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
+          >Export (versioned)</button>
+          <button
+            onClick={() => versionedFileInputRef.current?.click()}
+            disabled={importing}
+            className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
+          >{importing ? 'Importing…' : 'Import (versioned)'}</button>
+          <input ref={versionedFileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => handleImport(e, true)} />
         </div>
       </div>
       {importResult && (
@@ -244,53 +318,107 @@ Inventory.Collection = function Collection() {
       ) : inventory.length === 0 ? (
         <p className="text-fg-faint text-sm text-center py-8">No cards yet. Search above to add some.</p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           {visibleInventory.map((entry) => (
-            <CardRow
+            <div
               key={entry.id}
-              card={entry.card}
-              subtitle={`${entry.card.setName} · ${entry.card.typeLine}`}
-              nameLink="/cards"
-              nameLinkState={{ card: entry.card }}
+              className="relative"
+              onMouseEnter={() => onRowEnter(entry)}
+              onMouseLeave={onRowLeave}
             >
-              {entry.card.prices?.usd && (
-                <span className="text-xs text-fg-muted shrink-0">${entry.card.prices.usd}</span>
-              )}
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-3 border border-outline rounded-lg px-3 py-2 bg-surface-muted">
+                {entry.card.imageUri && (
+                  <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
+                )}
+                <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-fg-ghost">
+                  <p className="text-sm font-medium text-fg truncate">{entry.card.name}</p>
+                  <p className="text-xs text-fg-faint">{entry.card.setName} · {entry.card.typeLine}</p>
+                  {(entry.inContainers.length > 0 || entry.inDecks.length > 0) && (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {entry.inContainers.map((c) => (
+                        <span key={c.id} className="text-xs bg-indigo-900/40 text-indigo-300 rounded px-1.5 py-0.5 leading-none">
+                          {c.name}{c.quantity > 1 ? ` ×${c.quantity}` : ''}
+                        </span>
+                      ))}
+                      {entry.inDecks.map((d) => (
+                        <span key={d.id} className="text-xs bg-surface-strong text-fg-faint rounded px-1.5 py-0.5 leading-none">
+                          {d.name}{d.quantity > 1 ? ` ×${d.quantity}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+                {entry.card.prices?.usd && (
+                  <span className="text-xs text-fg-muted shrink-0">${entry.card.prices.usd}</span>
+                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => adjustQuantity(entry, -1)}
+                    disabled={adjustingId === entry.id || removingId === entry.id}
+                    className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
+                  >−</button>
+                  <input
+                    type="number"
+                    min={1}
+                    defaultValue={entry.quantity}
+                    key={entry.quantity}
+                    disabled={adjustingId === entry.id || removingId === entry.id}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                    className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => adjustQuantity(entry, +1)}
+                    disabled={adjustingId === entry.id || removingId === entry.id}
+                    className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
+                  >+</button>
+                </div>
                 <button
-                  onClick={() => adjustQuantity(entry, -1)}
-                  disabled={adjustingId === entry.id || removingId === entry.id}
-                  className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-muted hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
-                >−</button>
-                <input
-                  type="number"
-                  min={1}
-                  defaultValue={entry.quantity}
-                  key={entry.quantity}
-                  disabled={adjustingId === entry.id || removingId === entry.id}
-                  onBlur={(e) => {
-                    const val = parseInt(e.target.value, 10)
-                    if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
-                  }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                  className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button
-                  onClick={() => adjustQuantity(entry, +1)}
-                  disabled={adjustingId === entry.id || removingId === entry.id}
-                  className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-muted hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
-                >+</button>
+                  onClick={() => removeFromInventory(entry.id)}
+                  disabled={removingId === entry.id || adjustingId === entry.id}
+                  className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
+                >×</button>
               </div>
-              <button
-                onClick={() => removeFromInventory(entry.id)}
-                disabled={removingId === entry.id || adjustingId === entry.id}
-                className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
-              >
-                ×
-              </button>
-            </CardRow>
+              {hoveredEntryId === entry.id && (
+                <div
+                  className="absolute left-0 top-full mt-1 z-50 w-80 max-h-72 overflow-y-auto bg-surface-muted border border-outline rounded-lg shadow-lg"
+                  onMouseEnter={onPopoverEnter}
+                  onMouseLeave={() => setHoveredEntryId(null)}
+                >
+                  {loadingPrintings ? (
+                    <p className="text-xs text-fg-faint p-3">Finding other printings…</p>
+                  ) : printings.length === 0 ? (
+                    <p className="text-xs text-fg-faint p-3">No other printings found.</p>
+                  ) : (
+                    <ul className="p-1.5 flex flex-col gap-0.5">
+                      {printings.map((printing) => (
+                        <li key={printing.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-strong">
+                          {printing.imageUri && (
+                            <img src={printing.imageUri} alt={printing.name} className="w-8 rounded shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-fg truncate">{printing.setName}</p>
+                            <p className="text-xs text-fg-faint uppercase">{printing.setCode}</p>
+                          </div>
+                          <button
+                            onClick={() => handleSwap(entry, printing)}
+                            disabled={switchingCardId !== null}
+                            className="text-xs px-2 py-1 rounded border border-outline bg-surface-muted text-fg-soft hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+                          >
+                            {switchingCardId === printing.id ? '…' : 'Swap 1'}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   )

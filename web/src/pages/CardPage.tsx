@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { api, Card, InventoryEntry } from '../api'
 import OracleText from '../components/OracleText'
+import { formatManaCost } from '../data/manaSymbols'
 
 // --- Context ---
 
@@ -129,7 +130,13 @@ CardLookup.Detail = function Detail() {
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-fg">{selected.name}</h2>
           <p className="text-sm text-fg-muted mt-0.5">{selected.typeLine}</p>
-          {selected.manaCost && <p className="text-xs text-fg-faint mt-1">{selected.manaCost}</p>}
+          {selected.manaCost && (
+            <div className="mt-1 flex flex-col gap-0.5">
+              {formatManaCost(selected.manaCost).split('\n').map((line, i) => (
+                <p key={i} className="text-xs text-fg-faint">{line}</p>
+              ))}
+            </div>
+          )}
           {selected.oracleText && <div className="mt-2"><OracleText text={selected.oracleText} /></div>}
           <p className="text-xs text-fg-faint mt-2">{selected.setName} · {selected.rarity}</p>
           {selected.prices && <CardLookup.Prices prices={selected.prices} />}

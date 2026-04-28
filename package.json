@@ -12,9 +12,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@nestjs/core",
-      "@prisma/engines",
       "bcrypt",
-      "prisma",
       "tesseract.js"
     ]
   }

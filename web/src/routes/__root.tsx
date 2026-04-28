@@ -14,6 +14,7 @@ function Nav() {
         <Link to="/cards" className={navInactive.className} activeProps={navActive} inactiveProps={navInactive}>Cards</Link>
         <Link to="/finance" className={navInactive.className} activeProps={navActive} inactiveProps={navInactive}>Finance</Link>
         <Link to="/decks" className={navInactive.className} activeProps={navActive} inactiveProps={navInactive}>Decks</Link>
+        <Link to="/containers" className={navInactive.className} activeProps={navActive} inactiveProps={navInactive}>Containers</Link>
       </div>
     </nav>
   )

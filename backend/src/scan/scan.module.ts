@@ -3,9 +3,10 @@ import { ScanService } from './scan.service';
 import { ScanController } from './scan.controller';
 import { ScryfallModule } from '../scryfall/scryfall.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { ContainersModule } from '../containers/containers.module';
 
 @Module({
-  imports: [ScryfallModule, InventoryModule],
+  imports: [ScryfallModule, InventoryModule, ContainersModule],
   providers: [ScanService],
   controllers: [ScanController],
 })

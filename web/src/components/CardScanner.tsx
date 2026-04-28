@@ -1,4 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
+import { Link } from '@tanstack/react-router'
+import { api } from '../api'
 
 interface ScannedCard {
   cardName: string
@@ -31,6 +33,10 @@ export default function CardScanner() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const processingRef = useRef(false)
 
+  const sessionContainerIdRef = useRef<string | null>(null)
+  const [sessionContainerId, setSessionContainerId] = useState<string | null>(null)
+  const [sessionContainerName, setSessionContainerName] = useState<string | null>(null)
+
   const [state, setState] = useState<ScanState>('idle')
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<ScannedCard | null>(null)
@@ -42,9 +48,12 @@ export default function CardScanner() {
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
     processingRef.current = false
+    sessionContainerIdRef.current = null
     setState('idle')
     setProcessing(false)
     setSessionCards([])
+    setSessionContainerId(null)
+    setSessionContainerName(null)
   }, [])
 
   const attemptScan = useCallback(async () => {
@@ -73,7 +82,10 @@ export default function CardScanner() {
     try {
       const form = new FormData()
       form.append('image', blob, 'scan.jpg')
-      const res = await fetch('/api/scan', { method: 'POST', body: form })
+      const url = sessionContainerIdRef.current
+        ? `/api/scan?containerId=${sessionContainerIdRef.current}`
+        : '/api/scan'
+      const res = await fetch(url, { method: 'POST', body: form })
 
       if (!res.ok) {
         // Silently ignore scan failures (card not in frame yet) and keep trying
@@ -117,6 +129,17 @@ export default function CardScanner() {
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
       setState('scanning')
+
+      // Create a container to track this session's cards
+      try {
+        const d = new Date()
+        const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const container = await api.containers.create(`New container ${date}`)
+        sessionContainerIdRef.current = container.id
+        setSessionContainerId(container.id)
+        setSessionContainerName(container.name)
+      } catch { /* non-fatal — scan still works without a container */ }
+
       // Give the video a moment to start before first scan attempt
       setTimeout(resumeScanning, 800)
     } catch {
@@ -200,9 +223,20 @@ export default function CardScanner() {
       {/* Session list */}
       {sessionCards.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs text-fg-faint font-medium uppercase tracking-wide mb-2">
-            This session · {sessionCards.length} card{sessionCards.length !== 1 ? 's' : ''}
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-fg-faint font-medium uppercase tracking-wide">
+              This session · {sessionCards.length} card{sessionCards.length !== 1 ? 's' : ''}
+            </p>
+            {sessionContainerId && (
+              <Link
+                to="/containers/$id"
+                params={{ id: sessionContainerId }}
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                {sessionContainerName} →
+              </Link>
+            )}
+          </div>
           <ul className="flex flex-col gap-2">
             {sessionCards.map((scanned, i) => (
               <li key={i} className="flex items-center gap-3 bg-surface border border-outline rounded-lg px-3 py-2">

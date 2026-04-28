@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Controller, Post, Request,
+  BadRequestException, Controller, Post, Query, Request,
   UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -13,8 +13,12 @@ export class ScanController {
 
   @Post()
   @UseInterceptors(FileInterceptor('image', { limits: { fileSize: 10 * 1024 * 1024 } }))
-  scanCard(@Request() req, @UploadedFile() file: Express.Multer.File) {
+  scanCard(
+    @Request() req,
+    @UploadedFile() file: Express.Multer.File,
+    @Query('containerId') containerId?: string,
+  ) {
     if (!file) throw new BadRequestException('No image provided');
-    return this.scan.scanImage(file.buffer, req.user.id);
+    return this.scan.scanImage(file.buffer, req.user.id, containerId);
   }
 }
