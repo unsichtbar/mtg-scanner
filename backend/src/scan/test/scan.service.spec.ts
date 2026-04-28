@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ScanService } from '../scan.service';
 import { ScryfallService } from '../../scryfall/scryfall.service';
 import { InventoryService } from '../../inventory/inventory.service';
+import { ContainersService } from '../../containers/containers.service';
 import { Card } from '../../entities/card.entity';
 import { User } from '../../entities/user.entity';
 import { InventoryEntry } from '../../entities/inventory-entry.entity';
@@ -20,6 +21,10 @@ const mockScryfall = {
 
 const mockInventory = {
   add: jest.fn(),
+};
+
+const mockContainers = {
+  addCard: jest.fn(),
 };
 
 function makeCard(): Card {
@@ -52,6 +57,7 @@ describe('ScanService', () => {
         ScanService,
         { provide: ScryfallService, useValue: mockScryfall },
         { provide: InventoryService, useValue: mockInventory },
+        { provide: ContainersService, useValue: mockContainers },
       ],
     }).compile();
 
@@ -115,6 +121,40 @@ describe('ScanService', () => {
       mockScryfall.findByName.mockRejectedValueOnce(new Error('Card not found on Scryfall'));
 
       await expect(service.scanImage(Buffer.from('fake-image'), 'user-1')).rejects.toThrow('Card not found on Scryfall');
+    });
+
+    it('should call containers.addCard when a containerId is provided', async () => {
+      const card = makeCard();
+      const entry = makeEntry(card);
+      mockScryfall.findByName.mockResolvedValueOnce(card);
+      mockInventory.add.mockResolvedValueOnce(entry);
+      mockContainers.addCard.mockResolvedValueOnce({});
+
+      await service.scanImage(Buffer.from('fake-image'), 'user-1', 'container-1');
+
+      expect(mockContainers.addCard).toHaveBeenCalledWith('user-1', 'container-1', 'card-1', 1);
+    });
+
+    it('should not call containers.addCard when containerId is not provided', async () => {
+      const card = makeCard();
+      mockScryfall.findByName.mockResolvedValueOnce(card);
+      mockInventory.add.mockResolvedValueOnce(makeEntry(card));
+
+      await service.scanImage(Buffer.from('fake-image'), 'user-1');
+
+      expect(mockContainers.addCard).not.toHaveBeenCalled();
+    });
+
+    it('should still return the scan result when containers.addCard throws', async () => {
+      const card = makeCard();
+      const entry = makeEntry(card);
+      mockScryfall.findByName.mockResolvedValueOnce(card);
+      mockInventory.add.mockResolvedValueOnce(entry);
+      mockContainers.addCard.mockRejectedValueOnce(new Error('Container not found'));
+
+      const result = await service.scanImage(Buffer.from('fake-image'), 'user-1', 'bad-container');
+
+      expect(result).toEqual({ cardName: 'Lightning Bolt', card, inventoryEntry: entry });
     });
   });
 });

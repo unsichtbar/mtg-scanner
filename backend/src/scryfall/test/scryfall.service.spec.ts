@@ -8,6 +8,7 @@ import { Card } from '../../entities/card.entity';
 
 const mockEm = {
   findOne: jest.fn(),
+  find: jest.fn(),
   persist: jest.fn(),
   flush: jest.fn(),
 };
@@ -222,6 +223,80 @@ describe('ScryfallService', () => {
       const result = await service.findByName('Lightning Bolt');
 
       expect(result.isBasicLand).toBe(false);
+    });
+  });
+
+  describe('findPrintings', () => {
+    it('should query Scryfall with exact name, unique=prints, newest first on cache miss', async () => {
+      mockHttp.get.mockReturnValue(of({ data: { data: [scryfallCardFixture] } }));
+      mockEm.findOne.mockResolvedValue(null);
+
+      await service.findPrintings('Lightning Bolt');
+
+      expect(mockHttp.get).toHaveBeenCalledWith('/cards/search', {
+        params: { q: '!"Lightning Bolt"', unique: 'prints', order: 'released', dir: 'desc' },
+      });
+    });
+
+    it('should upsert each returned printing and return them', async () => {
+      const prints = [
+        scryfallCardFixture,
+        { ...scryfallCardFixture, id: 'print-2', set: 'm10', set_name: 'Magic 2010' },
+      ];
+      mockHttp.get.mockReturnValue(of({ data: { data: prints } }));
+      mockEm.findOne.mockResolvedValue(null);
+
+      const result = await service.findPrintings('Lightning Bolt');
+
+      expect(result).toHaveLength(2);
+      expect(mockEm.persist).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return at most 30 printings', async () => {
+      const thirtyOne = Array.from({ length: 31 }, (_, i) => ({ ...scryfallCardFixture, id: `p${i}` }));
+      mockHttp.get.mockReturnValue(of({ data: { data: thirtyOne } }));
+      mockEm.findOne.mockResolvedValue(null);
+
+      const result = await service.findPrintings('Lightning Bolt');
+
+      expect(result).toHaveLength(30);
+    });
+
+    it('should return from DB on the second call for the same name (cache hit)', async () => {
+      // First call — populates cache
+      mockHttp.get.mockReturnValue(of({ data: { data: [scryfallCardFixture] } }));
+      mockEm.findOne.mockResolvedValue(null);
+      await service.findPrintings('Lightning Bolt');
+
+      // Second call — should hit DB, not Scryfall
+      mockHttp.get.mockClear();
+      const cached = [new Card('scryfall-uuid-1', 'Lightning Bolt', '', 1, 'Instant', 'common', 'lea', 'Alpha', [], {})];
+      mockEm.find.mockResolvedValueOnce(cached);
+
+      const result = await service.findPrintings('Lightning Bolt');
+
+      expect(mockHttp.get).not.toHaveBeenCalled();
+      expect(mockEm.find).toHaveBeenCalledWith(Card, { name: 'Lightning Bolt' }, { orderBy: { setName: 'asc' } });
+      expect(result).toBe(cached);
+    });
+
+    it('should return an empty array when Scryfall returns an error', async () => {
+      mockHttp.get.mockReturnValue(throwError(() => new Error('500')));
+
+      const result = await service.findPrintings('Unknown');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should NOT cache the name when Scryfall returns an error (retries still hit Scryfall)', async () => {
+      mockHttp.get.mockReturnValue(throwError(() => new Error('500')));
+      await service.findPrintings('Lightning Bolt');
+
+      // Second call should still go to Scryfall because the first failed
+      mockHttp.get.mockReturnValue(of({ data: { data: [] } }));
+      await service.findPrintings('Lightning Bolt');
+
+      expect(mockHttp.get).toHaveBeenCalledTimes(2);
     });
   });
 });
