@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Link } from '@tanstack/react-router'
 import { api, Card, InventoryEntry } from '../api'
 import CardRow from '../components/CardRow'
@@ -195,8 +196,19 @@ Inventory.Collection = function Collection() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const versionedFileInputRef = useRef<HTMLInputElement>(null)
 
+  // Virtualizer
+  const parentRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: visibleInventory.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 62,
+    overscan: 5,
+  })
+
   // Hover / printings popover
   const [hoveredEntryId, setHoveredEntryId] = useState<string | null>(null)
+  const [hoveredEntry, setHoveredEntry] = useState<InventoryEntry | null>(null)
+  const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
   const [printings, setPrintings] = useState<Card[]>([])
   const [loadingPrintings, setLoadingPrintings] = useState(false)
   const [switchingCardId, setSwitchingCardId] = useState<string | null>(null)
@@ -204,10 +216,21 @@ Inventory.Collection = function Collection() {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentHoveredRef = useRef<string | null>(null)
 
-  function onRowEnter(entry: InventoryEntry) {
+  // Close popover on scroll so it doesn't drift from its row
+  useEffect(() => {
+    const el = parentRef.current
+    if (!el) return
+    const close = () => setHoveredEntryId(null)
+    el.addEventListener('scroll', close, { passive: true })
+    return () => el.removeEventListener('scroll', close)
+  }, [])
+
+  function onRowEnter(entry: InventoryEntry, el: HTMLElement) {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
     currentHoveredRef.current = entry.id
     setHoveredEntryId(entry.id)
+    setHoveredEntry(entry)
+    setHoveredRect(el.getBoundingClientRect())
     if (printingsCacheRef.current.has(entry.card.name)) {
       const all = printingsCacheRef.current.get(entry.card.name)!
       setPrintings(all.filter((p) => p.id !== entry.card.id))
@@ -235,11 +258,18 @@ Inventory.Collection = function Collection() {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
   }
 
-  async function handleSwap(entry: InventoryEntry, printing: Card) {
+  const closePopover = useCallback(() => {
+    setHoveredEntryId(null)
+    setHoveredEntry(null)
+    setHoveredRect(null)
+  }, [])
+
+  async function handleSwap(printing: Card) {
+    if (!hoveredEntry) return
     setSwitchingCardId(printing.id)
     try {
-      await switchVersion(entry, printing.id)
-      setHoveredEntryId(null)
+      await switchVersion(hoveredEntry, printing.id)
+      closePopover()
     } finally {
       setSwitchingCardId(null)
     }
@@ -259,6 +289,15 @@ Inventory.Collection = function Collection() {
       setImporting(false)
     }
   }
+
+  // Position popover above the row when too close to the bottom of the viewport
+  const popoverStyle = hoveredRect ? (() => {
+    const POPOVER_H = 288 // max-h-72
+    const top = hoveredRect.bottom + 4 + POPOVER_H > window.innerHeight
+      ? hoveredRect.top - POPOVER_H - 4
+      : hoveredRect.bottom + 4
+    return { position: 'fixed' as const, top, left: hoveredRect.left, width: hoveredRect.width, zIndex: 50 }
+  })() : null
 
   return (
     <section>
@@ -318,106 +357,116 @@ Inventory.Collection = function Collection() {
       ) : inventory.length === 0 ? (
         <p className="text-fg-faint text-sm text-center py-8">No cards yet. Search above to add some.</p>
       ) : (
-        <div className="flex flex-col gap-1.5">
-          {visibleInventory.map((entry) => (
-            <div
-              key={entry.id}
-              className="relative"
-              onMouseEnter={() => onRowEnter(entry)}
-              onMouseLeave={onRowLeave}
-            >
-              <div className="flex items-center gap-3 border border-outline rounded-lg px-3 py-2 bg-surface-muted">
-                {entry.card.imageUri && (
-                  <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
-                )}
-                <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-fg-ghost">
-                  <p className="text-sm font-medium text-fg truncate">{entry.card.name}</p>
-                  <p className="text-xs text-fg-faint">{entry.card.setName} · {entry.card.typeLine}</p>
-                  {((entry.inContainers?.length ?? 0) > 0 || entry.inDecks.length > 0) && (
-                    <div className="flex flex-wrap gap-1 mt-0.5">
-                      {(entry.inContainers ?? []).map((c) => (
-                        <span key={c.id} className="text-xs bg-indigo-900/40 text-indigo-300 rounded px-1.5 py-0.5 leading-none">
-                          {c.name}{c.quantity > 1 ? ` ×${c.quantity}` : ''}
-                        </span>
-                      ))}
-                      {entry.inDecks.map((d) => (
-                        <span key={d.id} className="text-xs bg-surface-strong text-fg-faint rounded px-1.5 py-0.5 leading-none">
-                          {d.name}{d.quantity > 1 ? ` ×${d.quantity}` : ''}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </Link>
-                {entry.card.prices?.usd && (
-                  <span className="text-xs text-fg-muted shrink-0">${entry.card.prices.usd}</span>
-                )}
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => adjustQuantity(entry, -1)}
-                    disabled={adjustingId === entry.id || removingId === entry.id}
-                    className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
-                  >−</button>
-                  <input
-                    type="number"
-                    min={1}
-                    defaultValue={entry.quantity}
-                    key={entry.quantity}
-                    disabled={adjustingId === entry.id || removingId === entry.id}
-                    onBlur={(e) => {
-                      const val = parseInt(e.target.value, 10)
-                      if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                    className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    onClick={() => adjustQuantity(entry, +1)}
-                    disabled={adjustingId === entry.id || removingId === entry.id}
-                    className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
-                  >+</button>
-                </div>
-                <button
-                  onClick={() => removeFromInventory(entry.id)}
-                  disabled={removingId === entry.id || adjustingId === entry.id}
-                  className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
-                >×</button>
-              </div>
-              {hoveredEntryId === entry.id && (
+        <div ref={parentRef} className="overflow-y-auto max-h-[60vh]">
+          <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const entry = visibleInventory[virtualItem.index]
+              return (
                 <div
-                  className="absolute left-0 top-full mt-1 z-50 w-80 max-h-72 overflow-y-auto bg-surface-muted border border-outline rounded-lg shadow-lg"
-                  onMouseEnter={onPopoverEnter}
-                  onMouseLeave={() => setHoveredEntryId(null)}
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, paddingBottom: '6px' }}
+                  onMouseEnter={(e) => onRowEnter(entry, e.currentTarget)}
+                  onMouseLeave={onRowLeave}
                 >
-                  {loadingPrintings ? (
-                    <p className="text-xs text-fg-faint p-3">Finding other printings…</p>
-                  ) : printings.length === 0 ? (
-                    <p className="text-xs text-fg-faint p-3">No other printings found.</p>
-                  ) : (
-                    <ul className="p-1.5 flex flex-col gap-0.5">
-                      {printings.map((printing) => (
-                        <li key={printing.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-strong">
-                          {printing.imageUri && (
-                            <img src={printing.imageUri} alt={printing.name} className="w-8 rounded shrink-0" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-fg truncate">{printing.setName}</p>
-                            <p className="text-xs text-fg-faint uppercase">{printing.setCode}</p>
-                          </div>
-                          <button
-                            onClick={() => handleSwap(entry, printing)}
-                            disabled={switchingCardId !== null}
-                            className="text-xs px-2 py-1 rounded border border-outline bg-surface-muted text-fg-soft hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
-                          >
-                            {switchingCardId === printing.id ? '…' : 'Swap 1'}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="flex items-center gap-3 border border-outline rounded-lg px-3 py-2 bg-surface-muted">
+                    {entry.card.imageUri && (
+                      <img src={entry.card.imageUri} alt={entry.card.name} className="w-8 rounded shrink-0" />
+                    )}
+                    <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-fg-ghost">
+                      <p className="text-sm font-medium text-fg truncate">{entry.card.name}</p>
+                      <p className="text-xs text-fg-faint">{entry.card.setName} · {entry.card.typeLine}</p>
+                      {((entry.inContainers?.length ?? 0) > 0 || entry.inDecks.length > 0) && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {(entry.inContainers ?? []).map((c) => (
+                            <span key={c.id} className="text-xs bg-indigo-900/40 text-indigo-300 rounded px-1.5 py-0.5 leading-none">
+                              {c.name}{c.quantity > 1 ? ` ×${c.quantity}` : ''}
+                            </span>
+                          ))}
+                          {entry.inDecks.map((d) => (
+                            <span key={d.id} className="text-xs bg-surface-strong text-fg-faint rounded px-1.5 py-0.5 leading-none">
+                              {d.name}{d.quantity > 1 ? ` ×${d.quantity}` : ''}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </Link>
+                    {entry.card.prices?.usd && (
+                      <span className="text-xs text-fg-muted shrink-0">${entry.card.prices.usd}</span>
+                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => adjustQuantity(entry, -1)}
+                        disabled={adjustingId === entry.id || removingId === entry.id}
+                        className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
+                      >−</button>
+                      <input
+                        type="number"
+                        min={1}
+                        defaultValue={entry.quantity}
+                        key={entry.quantity}
+                        disabled={adjustingId === entry.id || removingId === entry.id}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value, 10)
+                          if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                        className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        onClick={() => adjustQuantity(entry, +1)}
+                        disabled={adjustingId === entry.id || removingId === entry.id}
+                        className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
+                      >+</button>
+                    </div>
+                    <button
+                      onClick={() => removeFromInventory(entry.id)}
+                      disabled={removingId === entry.id || adjustingId === entry.id}
+                      className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
+                    >×</button>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Printings popover — rendered outside the scroll container as position:fixed */}
+      {hoveredEntryId && popoverStyle && (
+        <div
+          style={popoverStyle}
+          className="max-h-72 overflow-y-auto bg-surface-muted border border-outline rounded-lg shadow-lg"
+          onMouseEnter={onPopoverEnter}
+          onMouseLeave={closePopover}
+        >
+          {loadingPrintings ? (
+            <p className="text-xs text-fg-faint p-3">Finding other printings…</p>
+          ) : printings.length === 0 ? (
+            <p className="text-xs text-fg-faint p-3">No other printings found.</p>
+          ) : (
+            <ul className="p-1.5 flex flex-col gap-0.5">
+              {printings.map((printing) => (
+                <li key={printing.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-strong">
+                  {printing.imageUri && (
+                    <img src={printing.imageUri} alt={printing.name} className="w-8 rounded shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-fg truncate">{printing.setName}</p>
+                    <p className="text-xs text-fg-faint uppercase">{printing.setCode}</p>
+                  </div>
+                  <button
+                    onClick={() => handleSwap(printing)}
+                    disabled={switchingCardId !== null}
+                    className="text-xs px-2 py-1 rounded border border-outline bg-surface-muted text-fg-soft hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+                  >
+                    {switchingCardId === printing.id ? '…' : 'Swap 1'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </section>
