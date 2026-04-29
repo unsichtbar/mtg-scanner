@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react'
+import { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Link } from '@tanstack/react-router'
 import { api, Card, InventoryEntry } from '../api'
@@ -27,6 +27,12 @@ interface InventoryCtx {
   removeFromInventory: (entryId: string) => Promise<void>
   refreshInventory: () => Promise<void>
   switchVersion: (entry: InventoryEntry, newCardId: string) => Promise<void>
+  hoveredEntry: InventoryEntry | null
+  hoveredPrintings: Card[]
+  loadingPrintings: boolean
+  switchingCardId: string | null
+  setHoveredEntry: (entry: InventoryEntry) => void
+  handleSwap: (printing: Card) => Promise<void>
 }
 
 const InventoryContext = createContext<InventoryCtx | null>(null)
@@ -119,6 +125,61 @@ function Inventory({ children }: { children: React.ReactNode }) {
     await refreshInventory()
   }
 
+  // Alternate printings panel
+  const [hoveredEntry, setHoveredEntryState] = useState<InventoryEntry | null>(null)
+  const [hoveredPrintings, setHoveredPrintings] = useState<Card[]>([])
+  const [loadingPrintings, setLoadingPrintings] = useState(false)
+  const [switchingCardId, setSwitchingCardId] = useState<string | null>(null)
+  const printingsCacheRef = useRef<Map<string, Card[]>>(new Map())
+  const currentHoveredRef = useRef<string | null>(null)
+
+  function setHoveredEntry(entry: InventoryEntry) {
+    if (currentHoveredRef.current === entry.id) return
+    currentHoveredRef.current = entry.id
+    setHoveredEntryState(entry)
+    if (printingsCacheRef.current.has(entry.card.name)) {
+      const all = printingsCacheRef.current.get(entry.card.name)!
+      setHoveredPrintings(all.filter((p) => p.id !== entry.card.id))
+      setLoadingPrintings(false)
+    } else {
+      setHoveredPrintings([])
+      setLoadingPrintings(true)
+      const { id: cardId, name: cardName } = entry.card
+      const entryId = entry.id
+      api.cards.printings(cardName).then((all) => {
+        printingsCacheRef.current.set(cardName, all)
+        if (currentHoveredRef.current === entryId) {
+          setHoveredPrintings(all.filter((p) => p.id !== cardId))
+          setLoadingPrintings(false)
+        }
+      })
+    }
+  }
+
+  // Keep hoveredEntry in sync with inventory so quantity is never stale across swaps
+  useEffect(() => {
+    if (!hoveredEntry) return
+    const fresh = inventory.find((e) => e.id === hoveredEntry.id)
+    if (fresh !== hoveredEntry) {
+      if (fresh) {
+        setHoveredEntryState(fresh)
+      } else {
+        setHoveredEntryState(null)
+        currentHoveredRef.current = null
+      }
+    }
+  }, [inventory]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSwap(printing: Card) {
+    if (!hoveredEntry) return
+    setSwitchingCardId(printing.id)
+    try {
+      await switchVersion(hoveredEntry, printing.id)
+    } finally {
+      setSwitchingCardId(null)
+    }
+  }
+
   const sets = Array.from(
     new Map(inventory.map((e) => [e.card.setCode, e.card.setName])).entries()
   ).sort((a, b) => a[1].localeCompare(b[1]))
@@ -133,6 +194,7 @@ function Inventory({ children }: { children: React.ReactNode }) {
       inventory, loadingInventory, removingId, adjustingId,
       setFilter, setSetFilter, sets, visibleInventory,
       addToInventory, adjustQuantity, removeFromInventory, refreshInventory, switchVersion,
+      hoveredEntry, hoveredPrintings, loadingPrintings, switchingCardId, setHoveredEntry, handleSwap,
     }}>
       {children}
     </InventoryContext.Provider>
@@ -189,14 +251,14 @@ Inventory.Search = function Search() {
 Inventory.Collection = function Collection() {
   const {
     inventory, loadingInventory, visibleInventory, setFilter, setSetFilter, sets,
-    removingId, adjustingId, adjustQuantity, removeFromInventory, refreshInventory, switchVersion,
+    removingId, adjustingId, adjustQuantity, removeFromInventory, refreshInventory,
+    setHoveredEntry,
   } = useInventory()
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const versionedFileInputRef = useRef<HTMLInputElement>(null)
 
-  // Virtualizer
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
     count: visibleInventory.length,
@@ -204,76 +266,6 @@ Inventory.Collection = function Collection() {
     estimateSize: () => 62,
     overscan: 5,
   })
-
-  // Hover / printings popover
-  const [hoveredEntryId, setHoveredEntryId] = useState<string | null>(null)
-  const [hoveredEntry, setHoveredEntry] = useState<InventoryEntry | null>(null)
-  const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
-  const [printings, setPrintings] = useState<Card[]>([])
-  const [loadingPrintings, setLoadingPrintings] = useState(false)
-  const [switchingCardId, setSwitchingCardId] = useState<string | null>(null)
-  const printingsCacheRef = useRef<Map<string, Card[]>>(new Map())
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const currentHoveredRef = useRef<string | null>(null)
-
-  // Close popover on scroll so it doesn't drift from its row
-  useEffect(() => {
-    const el = parentRef.current
-    if (!el) return
-    const close = () => setHoveredEntryId(null)
-    el.addEventListener('scroll', close, { passive: true })
-    return () => el.removeEventListener('scroll', close)
-  }, [])
-
-  function onRowEnter(entry: InventoryEntry, el: HTMLElement) {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
-    currentHoveredRef.current = entry.id
-    setHoveredEntryId(entry.id)
-    setHoveredEntry(entry)
-    setHoveredRect(el.getBoundingClientRect())
-    if (printingsCacheRef.current.has(entry.card.name)) {
-      const all = printingsCacheRef.current.get(entry.card.name)!
-      setPrintings(all.filter((p) => p.id !== entry.card.id))
-      setLoadingPrintings(false)
-    } else {
-      setPrintings([])
-      setLoadingPrintings(true)
-      const { id: cardId, name: cardName } = entry.card
-      const entryId = entry.id
-      api.cards.printings(cardName).then((all) => {
-        printingsCacheRef.current.set(cardName, all)
-        if (currentHoveredRef.current === entryId) {
-          setPrintings(all.filter((p) => p.id !== cardId))
-          setLoadingPrintings(false)
-        }
-      })
-    }
-  }
-
-  function onRowLeave() {
-    hideTimerRef.current = setTimeout(() => setHoveredEntryId(null), 150)
-  }
-
-  function onPopoverEnter() {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
-  }
-
-  const closePopover = useCallback(() => {
-    setHoveredEntryId(null)
-    setHoveredEntry(null)
-    setHoveredRect(null)
-  }, [])
-
-  async function handleSwap(printing: Card) {
-    if (!hoveredEntry) return
-    setSwitchingCardId(printing.id)
-    try {
-      await switchVersion(hoveredEntry, printing.id)
-      closePopover()
-    } finally {
-      setSwitchingCardId(null)
-    }
-  }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>, versioned: boolean) {
     const file = e.target.files?.[0]
@@ -289,15 +281,6 @@ Inventory.Collection = function Collection() {
       setImporting(false)
     }
   }
-
-  // Position popover above the row when too close to the bottom of the viewport
-  const popoverStyle = hoveredRect ? (() => {
-    const POPOVER_H = 288 // max-h-72
-    const top = hoveredRect.bottom + 4 + POPOVER_H > window.innerHeight
-      ? hoveredRect.top - POPOVER_H - 4
-      : hoveredRect.bottom + 4
-    return { position: 'fixed' as const, top, left: hoveredRect.left, width: hoveredRect.width, zIndex: 50 }
-  })() : null
 
   return (
     <section>
@@ -367,8 +350,7 @@ Inventory.Collection = function Collection() {
                   data-index={virtualItem.index}
                   ref={virtualizer.measureElement}
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, paddingBottom: '6px' }}
-                  onMouseEnter={(e) => onRowEnter(entry, e.currentTarget)}
-                  onMouseLeave={onRowLeave}
+                  onMouseEnter={() => setHoveredEntry(entry)}
                 >
                   <div className="flex items-center gap-3 border border-outline rounded-lg px-3 py-2 bg-surface-muted">
                     {entry.card.imageUri && (
@@ -377,14 +359,14 @@ Inventory.Collection = function Collection() {
                     <Link to="/cards" state={{ card: entry.card }} className="flex-1 min-w-0 hover:underline decoration-fg-ghost">
                       <p className="text-sm font-medium text-fg truncate">{entry.card.name}</p>
                       <p className="text-xs text-fg-faint">{entry.card.setName} · {entry.card.typeLine}</p>
-                      {((entry.inContainers?.length ?? 0) > 0 || entry.inDecks.length > 0) && (
+                      {((entry.inContainers?.length ?? 0) > 0 || (entry.inDecks?.length ?? 0) > 0) && (
                         <div className="flex flex-wrap gap-1 mt-0.5">
                           {(entry.inContainers ?? []).map((c) => (
                             <span key={c.id} className="text-xs bg-indigo-900/40 text-indigo-300 rounded px-1.5 py-0.5 leading-none">
                               {c.name}{c.quantity > 1 ? ` ×${c.quantity}` : ''}
                             </span>
                           ))}
-                          {entry.inDecks.map((d) => (
+                          {(entry.inDecks ?? []).map((d) => (
                             <span key={d.id} className="text-xs bg-surface-strong text-fg-faint rounded px-1.5 py-0.5 leading-none">
                               {d.name}{d.quantity > 1 ? ` ×${d.quantity}` : ''}
                             </span>
@@ -432,23 +414,29 @@ Inventory.Collection = function Collection() {
           </div>
         </div>
       )}
+    </section>
+  )
+}
 
-      {/* Printings popover — rendered outside the scroll container as position:fixed */}
-      {hoveredEntryId && popoverStyle && (
-        <div
-          style={popoverStyle}
-          className="max-h-72 overflow-y-auto bg-surface-muted border border-outline rounded-lg shadow-lg"
-          onMouseEnter={onPopoverEnter}
-          onMouseLeave={closePopover}
-        >
+Inventory.Printings = function Printings() {
+  const { hoveredEntry, hoveredPrintings, loadingPrintings, switchingCardId, handleSwap } = useInventory()
+
+  return (
+    <aside className="sticky top-16">
+      <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Alternate printings</h2>
+      {!hoveredEntry ? (
+        <p className="text-xs text-fg-ghost text-center py-8">Hover a card to see other printings</p>
+      ) : (
+        <div>
+          <p className="text-sm font-medium text-fg truncate mb-2">{hoveredEntry.card.name}</p>
           {loadingPrintings ? (
-            <p className="text-xs text-fg-faint p-3">Finding other printings…</p>
-          ) : printings.length === 0 ? (
-            <p className="text-xs text-fg-faint p-3">No other printings found.</p>
+            <p className="text-xs text-fg-faint py-4 text-center">Finding printings…</p>
+          ) : hoveredPrintings.length === 0 ? (
+            <p className="text-xs text-fg-faint py-4 text-center">No other printings found.</p>
           ) : (
-            <ul className="p-1.5 flex flex-col gap-0.5">
-              {printings.map((printing) => (
-                <li key={printing.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-strong">
+            <ul className="flex flex-col gap-1.5">
+              {hoveredPrintings.map((printing) => (
+                <li key={printing.id} className="flex items-center gap-2 border border-outline rounded-lg px-2 py-1.5 bg-surface-muted">
                   {printing.imageUri && (
                     <img src={printing.imageUri} alt={printing.name} className="w-8 rounded shrink-0" />
                   )}
@@ -469,7 +457,7 @@ Inventory.Collection = function Collection() {
           )}
         </div>
       )}
-    </section>
+    </aside>
   )
 }
 
@@ -477,11 +465,18 @@ Inventory.Collection = function Collection() {
 
 export default function InventoryPage() {
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10">
+    <div className="max-w-6xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold text-fg mb-6">Inventory</h1>
       <Inventory>
-        <Inventory.Search />
-        <Inventory.Collection />
+        <div className="flex gap-6 items-start">
+          <div className="w-64 shrink-0">
+            <Inventory.Printings />
+          </div>
+          <div className="flex-1 min-w-0">
+            <Inventory.Search />
+            <Inventory.Collection />
+          </div>
+        </div>
       </Inventory>
     </div>
   )

@@ -74,7 +74,7 @@ export class InventoryService {
     }));
   }
 
-  async add(userId: string, cardId: string, quantity: number) {
+  async add(userId: string, cardId: string, quantity: number): Promise<any> {
     const card = await this.scryfall.findById(cardId);
     const user = await this.em.findOneOrFail(User, userId);
 
@@ -82,13 +82,13 @@ export class InventoryService {
     if (existing) {
       existing.quantity += quantity;
       await this.em.flush();
-      return existing;
+      return { ...existing, inDecks: [], inContainers: [] };
     }
 
     const entry = new InventoryEntry(user, card, quantity);
     this.em.persist(entry);
     await this.em.flush();
-    return entry;
+    return { ...entry, inDecks: [], inContainers: [] };
   }
 
   async update(userId: string, entryId: string, quantity: number) {
