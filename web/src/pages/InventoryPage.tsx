@@ -1,38 +1,19 @@
-import { useState, useEffect, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore, createContext, useContext } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Link } from '@tanstack/react-router'
 import { api, Card, InventoryEntry } from '../api'
+import { Inventory } from '../models/Inventory'
 import CardRow from '../components/CardRow'
 import { Route } from '../routes/inventory'
 
-// --- Context ---
+// --- Inventory context (data + mutations) ---
 
 interface InventoryCtx {
   query: string
   setQuery: (q: string) => void
   searchResults: Card[]
   searching: boolean
-  pendingCardId: string | null
-  addedIds: Set<string>
-  inventory: InventoryEntry[]
-  loadingInventory: boolean
-  removingId: string | null
-  adjustingId: string | null
-  setFilter: string
-  setSetFilter: (v: string) => void
-  sets: [string, string][]
-  visibleInventory: InventoryEntry[]
-  addToInventory: (card: Card) => Promise<void>
-  adjustQuantity: (entry: InventoryEntry, delta: number) => Promise<void>
-  removeFromInventory: (entryId: string) => Promise<void>
-  refreshInventory: () => Promise<void>
-  switchVersion: (entry: InventoryEntry, newCardId: string) => Promise<void>
-  hoveredEntry: InventoryEntry | null
-  hoveredPrintings: Card[]
-  loadingPrintings: boolean
-  switchingCardId: string | null
-  setHoveredEntry: (entry: InventoryEntry) => void
-  handleSwap: (printing: Card) => Promise<void>
+  inventory: Inventory
 }
 
 const InventoryContext = createContext<InventoryCtx | null>(null)
@@ -43,89 +24,29 @@ function useInventory() {
   return ctx
 }
 
-// --- Compound component ---
+// --- Printings context (hover + swap) ---
 
-function Inventory({ children }: { children: React.ReactNode }) {
-  const [query, setQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Card[]>([])
-  const [searching, setSearching] = useState(false)
-  const [pendingCardId, setPendingCardId] = useState<string | null>(null)
-  const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
-  const [inventory, setInventory] = useState<InventoryEntry[]>([])
-  const [loadingInventory, setLoadingInventory] = useState(true)
-  const [removingId, setRemovingId] = useState<string | null>(null)
-  const [adjustingId, setAdjustingId] = useState<string | null>(null)
-  const { set } = Route.useSearch()
-  const [setFilter, setSetFilter] = useState(() => set ?? '')
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+interface PrintingsCtx {
+  hoveredEntry: InventoryEntry | null
+  hoveredPrintings: Card[]
+  loadingPrintings: boolean
+  switchingCardId: string | null
+  setHoveredEntry: (entry: InventoryEntry) => void
+  handleSwap: (printing: Card) => Promise<void>
+}
 
-  useEffect(() => {
-    api.inventory.list().then(setInventory).finally(() => setLoadingInventory(false))
-  }, [])
+const PrintingsContext = createContext<PrintingsCtx | null>(null)
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!query.trim()) { setSearchResults([]); return }
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true)
-      try { setSearchResults(await api.cards.search(query)) }
-      finally { setSearching(false) }
-    }, 400)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [query])
+function usePrintings() {
+  const ctx = useContext(PrintingsContext)
+  if (!ctx) throw new Error('Must be used inside <PrintingsProvider>')
+  return ctx
+}
 
-  async function addToInventory(card: Card) {
-    setPendingCardId(card.id)
-    try {
-      const entry = await api.inventory.add(card.id)
-      setAddedIds((prev) => new Set(prev).add(card.id))
-      setInventory((prev) => {
-        const existing = prev.find((e) => e.card.id === card.id)
-        if (existing) return prev.map((e) => e.card.id === card.id ? { ...e, quantity: entry.quantity } : e)
-        return [entry, ...prev]
-      })
-    } finally {
-      setPendingCardId(null)
-    }
-  }
+function PrintingsProvider({ children }: { children: React.ReactNode }) {
+  const { inventory } = useInventory()
+  const { entries } = useInventorySnapshot()
 
-  async function adjustQuantity(entry: InventoryEntry, delta: number) {
-    const newQty = entry.quantity + delta
-    if (newQty <= 0) return removeFromInventory(entry.id)
-    setAdjustingId(entry.id)
-    try {
-      const updated = await api.inventory.update(entry.id, newQty)
-      setInventory((prev) => prev.map((e) => e.id === entry.id ? { ...e, quantity: updated.quantity } : e))
-    } finally {
-      setAdjustingId(null)
-    }
-  }
-
-  async function removeFromInventory(entryId: string) {
-    setRemovingId(entryId)
-    try {
-      await api.inventory.remove(entryId)
-      setInventory((prev) => prev.filter((e) => e.id !== entryId))
-    } finally {
-      setRemovingId(null)
-    }
-  }
-
-  async function refreshInventory() {
-    setInventory(await api.inventory.list())
-  }
-
-  async function switchVersion(entry: InventoryEntry, newCardId: string) {
-    await api.inventory.add(newCardId, 1)
-    if (entry.quantity <= 1) {
-      await api.inventory.remove(entry.id)
-    } else {
-      await api.inventory.update(entry.id, entry.quantity - 1)
-    }
-    await refreshInventory()
-  }
-
-  // Alternate printings panel
   const [hoveredEntry, setHoveredEntryState] = useState<InventoryEntry | null>(null)
   const [hoveredPrintings, setHoveredPrintings] = useState<Card[]>([])
   const [loadingPrintings, setLoadingPrintings] = useState(false)
@@ -159,7 +80,7 @@ function Inventory({ children }: { children: React.ReactNode }) {
   // Keep hoveredEntry in sync with inventory so quantity is never stale across swaps
   useEffect(() => {
     if (!hoveredEntry) return
-    const fresh = inventory.find((e) => e.id === hoveredEntry.id)
+    const fresh = entries.find((e) => e.id === hoveredEntry.id)
     if (fresh !== hoveredEntry) {
       if (fresh) {
         setHoveredEntryState(fresh)
@@ -168,42 +89,71 @@ function Inventory({ children }: { children: React.ReactNode }) {
         currentHoveredRef.current = null
       }
     }
-  }, [inventory]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entries]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSwap(printing: Card) {
     if (!hoveredEntry) return
     setSwitchingCardId(printing.id)
     try {
-      await switchVersion(hoveredEntry, printing.id)
+      await inventory.switchVersion(hoveredEntry, printing.id)
     } finally {
       setSwitchingCardId(null)
     }
   }
 
-  const sets = Array.from(
-    new Map(inventory.map((e) => [e.card.setCode, e.card.setName])).entries()
-  ).sort((a, b) => a[1].localeCompare(b[1]))
+  return (
+    <PrintingsContext.Provider value={{
+      hoveredEntry, hoveredPrintings, loadingPrintings, switchingCardId,
+      setHoveredEntry, handleSwap,
+    }}>
+      {children}
+    </PrintingsContext.Provider>
+  )
+}
 
-  const visibleInventory = setFilter
-    ? inventory.filter((e) => e.card.setCode === setFilter)
-    : inventory
+// Convenience hook — subscribes to inventory state changes
+function useInventorySnapshot() {
+  const { inventory } = useInventory()
+  return useSyncExternalStore(inventory.subscribe, inventory.getSnapshot)
+}
+
+// --- Inventory provider ---
+
+function InventoryProvider({ children }: { children: React.ReactNode }) {
+  const { set } = Route.useSearch()
+  const [inventory] = useState(() => new Inventory(set ?? ''))
+
+  const [query, setQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Card[]>([])
+  const [searching, setSearching] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => { inventory.load() }, [inventory])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!query.trim()) { setSearchResults([]); return }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true)
+      try { setSearchResults(await api.cards.search(query)) }
+      finally { setSearching(false) }
+    }, 400)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query])
 
   return (
-    <InventoryContext.Provider value={{
-      query, setQuery, searchResults, searching, pendingCardId, addedIds,
-      inventory, loadingInventory, removingId, adjustingId,
-      setFilter, setSetFilter, sets, visibleInventory,
-      addToInventory, adjustQuantity, removeFromInventory, refreshInventory, switchVersion,
-      hoveredEntry, hoveredPrintings, loadingPrintings, switchingCardId, setHoveredEntry, handleSwap,
-    }}>
+    <InventoryContext.Provider value={{ query, setQuery, searchResults, searching, inventory }}>
       {children}
     </InventoryContext.Provider>
   )
 }
 
-Inventory.Search = function Search() {
-  const { query, setQuery, searching, searchResults, inventory, pendingCardId, addedIds, addToInventory } = useInventory()
-  const inventoryCardIds = new Set(inventory.map((e) => e.card.id))
+// --- Sub-components ---
+
+function Search() {
+  const { query, setQuery, searching, searchResults, inventory } = useInventory()
+  const { entries, pendingCardId, addedIds } = useInventorySnapshot()
+  const inventoryCardIds = new Set(entries.map((e) => e.card.id))
   return (
     <section className="mb-8">
       <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint mb-2">Add cards by name</h2>
@@ -229,7 +179,7 @@ Inventory.Search = function Search() {
                   <span className="text-xs text-fg-muted shrink-0">${card.prices.usd}</span>
                 )}
                 <button
-                  onClick={() => addToInventory(card)}
+                  onClick={() => inventory.add(card)}
                   disabled={pendingCardId === card.id}
                   className={`text-sm px-2.5 py-1 rounded-lg font-medium transition-colors disabled:opacity-40 cursor-pointer shrink-0 ${
                     justAdded || inInventory
@@ -248,12 +198,10 @@ Inventory.Search = function Search() {
   )
 }
 
-Inventory.Collection = function Collection() {
-  const {
-    inventory, loadingInventory, visibleInventory, setFilter, setSetFilter, sets,
-    removingId, adjustingId, adjustQuantity, removeFromInventory, refreshInventory,
-    setHoveredEntry,
-  } = useInventory()
+function Collection() {
+  const { inventory } = useInventory()
+  const { setHoveredEntry } = usePrintings()
+  const { entries, loading, visibleEntries, sets, filter, removingId, adjustingId } = useInventorySnapshot()
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -261,7 +209,7 @@ Inventory.Collection = function Collection() {
 
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
-    count: visibleInventory.length,
+    count: visibleEntries.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 62,
     overscan: 5,
@@ -274,9 +222,8 @@ Inventory.Collection = function Collection() {
     setImporting(true)
     setImportResult(null)
     try {
-      const result = await (versioned ? api.inventory.importVersionedCsv(file) : api.inventory.importCsv(file))
+      const result = await (versioned ? inventory.importVersionedCsv(file) : inventory.importCsv(file))
       setImportResult(result)
-      if (result.imported > 0) await refreshInventory()
     } finally {
       setImporting(false)
     }
@@ -286,13 +233,13 @@ Inventory.Collection = function Collection() {
     <section>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs font-medium uppercase tracking-wide text-fg-faint">
-          My collection{!loadingInventory && ` · ${visibleInventory.length}${setFilter ? ` of ${inventory.length}` : ''} card${inventory.length !== 1 ? 's' : ''}`}
+          My collection{!loading && ` · ${visibleEntries.length}${filter ? ` of ${entries.length}` : ''} card${entries.length !== 1 ? 's' : ''}`}
         </h2>
         <div className="flex items-center gap-2">
           {sets.length > 0 && (
             <select
-              value={setFilter}
-              onChange={(e) => setSetFilter(e.target.value)}
+              value={filter}
+              onChange={(e) => inventory.setFilter(e.target.value)}
               className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted focus:outline-none focus:ring-1 focus:ring-focus cursor-pointer"
             >
               <option value="">All sets</option>
@@ -303,7 +250,7 @@ Inventory.Collection = function Collection() {
           )}
           <button
             onClick={() => api.inventory.exportCsv()}
-            disabled={inventory.length === 0}
+            disabled={entries.length === 0}
             className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
           >Export (by name)</button>
           <button
@@ -314,7 +261,7 @@ Inventory.Collection = function Collection() {
           <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => handleImport(e, false)} />
           <button
             onClick={() => api.inventory.exportVersionedCsv()}
-            disabled={inventory.length === 0}
+            disabled={entries.length === 0}
             className="text-xs border border-outline rounded-lg px-2 py-1 text-fg-soft bg-surface-muted hover:bg-surface-strong disabled:opacity-40 cursor-pointer"
           >Export (versioned)</button>
           <button
@@ -335,15 +282,15 @@ Inventory.Collection = function Collection() {
           )}
         </div>
       )}
-      {loadingInventory ? (
+      {loading ? (
         <p className="text-fg-faint text-sm text-center py-8">Loading…</p>
-      ) : inventory.length === 0 ? (
+      ) : entries.length === 0 ? (
         <p className="text-fg-faint text-sm text-center py-8">No cards yet. Search above to add some.</p>
       ) : (
         <div ref={parentRef} className="overflow-y-auto max-h-[60vh]">
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
             {virtualizer.getVirtualItems().map((virtualItem) => {
-              const entry = visibleInventory[virtualItem.index]
+              const entry = visibleEntries[virtualItem.index]
               return (
                 <div
                   key={virtualItem.key}
@@ -379,7 +326,7 @@ Inventory.Collection = function Collection() {
                     )}
                     <div className="flex items-center gap-1 shrink-0">
                       <button
-                        onClick={() => adjustQuantity(entry, -1)}
+                        onClick={() => inventory.adjustQuantity(entry, -1)}
                         disabled={adjustingId === entry.id || removingId === entry.id}
                         className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
                       >−</button>
@@ -391,19 +338,19 @@ Inventory.Collection = function Collection() {
                         disabled={adjustingId === entry.id || removingId === entry.id}
                         onBlur={(e) => {
                           const val = parseInt(e.target.value, 10)
-                          if (!isNaN(val) && val !== entry.quantity) adjustQuantity(entry, val - entry.quantity)
+                          if (!isNaN(val) && val !== entry.quantity) inventory.adjustQuantity(entry, val - entry.quantity)
                         }}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                         className="w-10 text-center text-sm text-fg-soft bg-surface-muted border border-outline rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-focus disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <button
-                        onClick={() => adjustQuantity(entry, +1)}
+                        onClick={() => inventory.adjustQuantity(entry, +1)}
                         disabled={adjustingId === entry.id || removingId === entry.id}
                         className="w-6 h-6 flex items-center justify-center rounded text-fg-faint hover:bg-surface-strong hover:text-fg-mid disabled:opacity-40 cursor-pointer text-base leading-none"
                       >+</button>
                     </div>
                     <button
-                      onClick={() => removeFromInventory(entry.id)}
+                      onClick={() => inventory.remove(entry.id)}
                       disabled={removingId === entry.id || adjustingId === entry.id}
                       className="text-fg-ghost hover:text-red-400 transition-colors text-lg leading-none disabled:opacity-40 cursor-pointer"
                     >×</button>
@@ -418,8 +365,8 @@ Inventory.Collection = function Collection() {
   )
 }
 
-Inventory.Printings = function Printings() {
-  const { hoveredEntry, hoveredPrintings, loadingPrintings, switchingCardId, handleSwap } = useInventory()
+function Printings() {
+  const { hoveredEntry, hoveredPrintings, loadingPrintings, switchingCardId, handleSwap } = usePrintings()
 
   return (
     <aside className="sticky top-16">
@@ -467,17 +414,19 @@ export default function InventoryPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold text-fg mb-6">Inventory</h1>
-      <Inventory>
-        <div className="flex gap-6 items-start">
-          <div className="w-64 shrink-0">
-            <Inventory.Printings />
+      <InventoryProvider>
+        <PrintingsProvider>
+          <div className="flex gap-6 items-start">
+            <div className="w-64 shrink-0">
+              <Printings />
+            </div>
+            <div className="flex-1 min-w-0">
+              <Search />
+              <Collection />
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <Inventory.Search />
-            <Inventory.Collection />
-          </div>
-        </div>
-      </Inventory>
+        </PrintingsProvider>
+      </InventoryProvider>
     </div>
   )
 }
