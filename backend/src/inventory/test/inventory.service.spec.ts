@@ -176,8 +176,9 @@ describe('InventoryService', () => {
 
       expect(mockEm.persist).toHaveBeenCalledWith(expect.any(InventoryEntry));
       expect(mockEm.flush).toHaveBeenCalledTimes(1);
-      expect(result).toBeInstanceOf(InventoryEntry);
       expect(result.quantity).toBe(1);
+      expect(result.inDecks).toEqual([]);
+      expect(result.inContainers).toEqual([]);
     });
 
     it('should increment quantity on an existing InventoryEntry', async () => {
