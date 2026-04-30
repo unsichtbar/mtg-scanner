@@ -12,7 +12,7 @@ interface ScryfallCard {
   card_faces?: { image_uris?: { normal?: string } }[];
   mana_cost?: string;
   cmc?: number;
-  type_line: string;
+  type_line?: string;
   oracle_text?: string;
   colors?: string[];
   color_identity: string[];
@@ -107,7 +107,7 @@ export class ScryfallService {
       card.imageUri = imageUri;
       card.manaCost = data.mana_cost ?? null;
       card.cmc = data.cmc ?? 0;
-      card.typeLine = data.type_line;
+      card.typeLine = data.type_line ?? '';
       card.oracleText = data.oracle_text ?? null;
       card.colors = data.colors ?? [];
       card.colorIdentity = data.color_identity;
@@ -121,7 +121,7 @@ export class ScryfallService {
     } else {
       card = new Card(
         data.id, data.name, data.scryfall_uri, data.cmc ?? 0,
-        data.type_line, data.rarity, data.set, data.set_name,
+        data.type_line ?? '', data.rarity, data.set, data.set_name,
         data.color_identity, data.legalities,
       );
       card.imageUri = imageUri;

@@ -214,6 +214,18 @@ describe('ScryfallService', () => {
       expect(result.isBasicLand).toBe(true);
     });
 
+    it('should default type_line to empty string when the Scryfall response omits the field', async () => {
+      const noTypeFixture = { ...scryfallCardFixture, type_line: undefined };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockHttp.get.mockReturnValue(of({ data: noTypeFixture }));
+
+      const result = await service.findByName('Steam Vents');
+
+      expect(result.typeLine).toBe('');
+    });
+
     it('should default cmc to 0 when the Scryfall response omits the field (new card)', async () => {
       const noCmcFixture = { ...scryfallCardFixture, cmc: undefined };
       mockEm.findOne
