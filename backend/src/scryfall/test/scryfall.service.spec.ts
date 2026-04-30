@@ -214,6 +214,31 @@ describe('ScryfallService', () => {
       expect(result.isBasicLand).toBe(true);
     });
 
+    it('should default cmc to 0 when the Scryfall response omits the field (new card)', async () => {
+      const noCmcFixture = { ...scryfallCardFixture, cmc: undefined };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockHttp.get.mockReturnValue(of({ data: noCmcFixture }));
+
+      const result = await service.findByName('Steam Vents');
+
+      expect(result.cmc).toBe(0);
+    });
+
+    it('should default cmc to 0 when the Scryfall response omits the field (existing card)', async () => {
+      const existingCard = new Card('scryfall-uuid-1', 'Steam Vents', 'https://scryfall.com', 2, 'Land', 'rare', 'grn', 'Guilds of Ravnica', [], {});
+      const noCmcFixture = { ...scryfallCardFixture, cmc: undefined };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(existingCard);
+      mockHttp.get.mockReturnValue(of({ data: noCmcFixture }));
+
+      const result = await service.findByName('Steam Vents');
+
+      expect(result.cmc).toBe(0);
+    });
+
     it('should set isBasicLand=false when type_line does not contain "Basic Land"', async () => {
       mockEm.findOne
         .mockResolvedValueOnce(null)

@@ -193,6 +193,8 @@ describe('InventoryService', () => {
       const result = await service.add('user-1', 'card-1', 2);
 
       expect(result.quantity).toBe(5);
+      expect(result.inDecks).toEqual([]);
+      expect(result.inContainers).toEqual([]);
       expect(mockEm.persist).not.toHaveBeenCalled();
       expect(mockEm.flush).toHaveBeenCalledTimes(1);
     });
