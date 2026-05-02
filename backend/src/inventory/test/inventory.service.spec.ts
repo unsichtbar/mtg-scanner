@@ -149,6 +149,73 @@ describe('InventoryService', () => {
       );
     });
 
+    it('should pass $like filter on card.manaCost when manaCost filter is provided', async () => {
+      mockListFinds([]);
+
+      await service.list('user-1', { manaCost: '{R}' });
+
+      expect(mockEm.find).toHaveBeenNthCalledWith(
+        1,
+        InventoryEntry,
+        { user: 'user-1', card: { manaCost: { $like: '%{R}%' } } },
+        expect.any(Object),
+      );
+    });
+
+    it('should pass $ilike filter on card.oracleText when text filter is provided', async () => {
+      mockListFinds([]);
+
+      await service.list('user-1', { text: 'flying' });
+
+      expect(mockEm.find).toHaveBeenNthCalledWith(
+        1,
+        InventoryEntry,
+        { user: 'user-1', card: { oracleText: { $ilike: '%flying%' } } },
+        expect.any(Object),
+      );
+    });
+
+    it('should pass $ilike filter on card.typeLine when type filter is provided', async () => {
+      mockListFinds([]);
+
+      await service.list('user-1', { type: 'creature' });
+
+      expect(mockEm.find).toHaveBeenNthCalledWith(
+        1,
+        InventoryEntry,
+        { user: 'user-1', card: { typeLine: { $ilike: '%creature%' } } },
+        expect.any(Object),
+      );
+    });
+
+    it('should pass exact filter on card.rarity when rarity filter is provided', async () => {
+      mockListFinds([]);
+
+      await service.list('user-1', { rarity: 'rare' });
+
+      expect(mockEm.find).toHaveBeenNthCalledWith(
+        1,
+        InventoryEntry,
+        { user: 'user-1', card: { rarity: 'rare' } },
+        expect.any(Object),
+      );
+    });
+
+    it('should resolve card id from a reference object when deck card is not fully populated', async () => {
+      const user = makeUser();
+      const card = makeCard();
+      const entry = makeEntry(user, card);
+      const deck = { id: 'deck-1', name: 'My Deck' } as Deck;
+      // dc.card is a raw id string, not a populated object
+      const deckCard = { card: card.id, deck, quantity: 1 } as unknown as DeckCard;
+
+      mockListFinds([entry], [deck], [deckCard]);
+
+      const result = await service.list('user-1', {});
+
+      expect(result[0].inDecks).toEqual([{ id: 'deck-1', name: 'My Deck', quantity: 1 }]);
+    });
+
     it('should not add card filter when no filter fields are provided', async () => {
       mockListFinds([]);
 
@@ -324,6 +391,15 @@ describe('InventoryService', () => {
       expect(mockScryfall.findByName).toHaveBeenCalledWith('Kongming, Sleeping Dragon');
     });
 
+    it('should record an error when quantity is zero or negative', async () => {
+      mockEm.findOneOrFail.mockResolvedValueOnce(makeUser());
+
+      const result = await service.importCsv('user-1', 'Lightning Bolt,0');
+
+      expect(result.imported).toBe(0);
+      expect(result.errors).toHaveLength(1);
+    });
+
     it('should record an error for lines with no comma', async () => {
       mockEm.findOneOrFail.mockResolvedValueOnce(makeUser());
 
@@ -411,6 +487,15 @@ describe('InventoryService', () => {
       await service.importVersionedCsv('user-1', 'card-1,Lightning Bolt,lea,4');
 
       expect(existing.quantity).toBe(4);
+    });
+
+    it('should error when quantity is zero or negative', async () => {
+      mockEm.findOneOrFail.mockResolvedValueOnce(makeUser());
+
+      const result = await service.importVersionedCsv('user-1', 'abc-uuid,Lightning Bolt,lea,0');
+
+      expect(result.imported).toBe(0);
+      expect(result.errors).toHaveLength(1);
     });
 
     it('should error on a line with only one comma (missing required fields)', async () => {

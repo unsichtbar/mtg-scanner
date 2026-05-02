@@ -251,6 +251,68 @@ describe('ScryfallService', () => {
       expect(result.cmc).toBe(0);
     });
 
+    it('should set imageUri to null when neither image_uris nor card_faces are present', async () => {
+      const noImageFixture = { ...scryfallCardFixture, image_uris: undefined, card_faces: undefined };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockHttp.get.mockReturnValue(of({ data: noImageFixture }));
+
+      const result = await service.findByName('No Image Card');
+
+      expect(result.imageUri).toBeNull();
+    });
+
+    it('should set manaCost and oracleText to null when absent on a new card', async () => {
+      const noTextFixture = { ...scryfallCardFixture, mana_cost: undefined, oracle_text: undefined };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockHttp.get.mockReturnValue(of({ data: noTextFixture }));
+
+      const result = await service.findByName('No Text Card');
+
+      expect(result.manaCost).toBeNull();
+      expect(result.oracleText).toBeNull();
+    });
+
+    it('should set colors to empty array when absent on a new card', async () => {
+      const noColorsFixture = { ...scryfallCardFixture, colors: undefined };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockHttp.get.mockReturnValue(of({ data: noColorsFixture }));
+
+      const result = await service.findByName('No Colors Card');
+
+      expect(result.colors).toEqual([]);
+    });
+
+    it('should update optional fields to null/empty on an existing card when absent', async () => {
+      const existingCard = new Card('scryfall-uuid-1', 'Lightning Bolt', 'https://scryfall.com', 1, 'Instant', 'common', 'lea', 'Alpha', ['R'], {});
+      const minimalFixture = {
+        ...scryfallCardFixture,
+        mana_cost: undefined,
+        oracle_text: undefined,
+        colors: undefined,
+        image_uris: undefined,
+        card_faces: undefined,
+        prices: undefined,
+      };
+      mockEm.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(existingCard);
+      mockHttp.get.mockReturnValue(of({ data: minimalFixture }));
+
+      const result = await service.findByName('Lightning Bolt');
+
+      expect(result.manaCost).toBeNull();
+      expect(result.oracleText).toBeNull();
+      expect(result.colors).toEqual([]);
+      expect(result.imageUri).toBeNull();
+      expect(result.prices).toBeNull();
+    });
+
     it('should set isBasicLand=false when type_line does not contain "Basic Land"', async () => {
       mockEm.findOne
         .mockResolvedValueOnce(null)
